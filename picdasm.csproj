@@ -43,11 +43,13 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="AddrMode.cs" />
     <Compile Include="BitMatcher.cs" />
     <Compile Include="IntelHexReader.cs" />
     <Compile Include="IntelHexRecordDumper.cs" />
     <Compile Include="IntelHexRecordParser.cs" />
     <Compile Include="IntelHexRecordBuf.cs" />
+    <Compile Include="PicInstructionDecoder.cs" />
     <Compile Include="PicProgMemImage.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
