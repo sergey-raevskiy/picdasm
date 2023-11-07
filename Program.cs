@@ -28,6 +28,7 @@ namespace picdasm
                 else if (buf.InstrucitonKind == PicInstructionKind.Unknown)
                 {
                     Console.WriteLine(".dw 0x{0:X2}{1:X2}", buf.HiByte, buf.LoByte);
+                    return;
                 }
                 else
                 {

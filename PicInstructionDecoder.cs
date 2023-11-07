@@ -7,6 +7,7 @@ namespace picdasm
         Unknown,
         Literal,
         Alu,
+        Alu2,
     }
 
     enum PicLiteralInstruction : byte
@@ -59,6 +60,23 @@ namespace picdasm
         SUBWF = 0x5C,
     }
 
+    enum PicAluInstruction2 : byte
+    {
+        // 0 1 1 0 opcode:3 a f:8 (ALU operations, do not write to W)
+        Prefix = 0x60,
+        PrefixMask = 0xF0,
+        OpCodeMask = 0x0E,
+
+        CPFSLT = 0x0,
+        CPFSEQ = 0x2,
+        CPFSGT = 0x4,
+        TSTFSZ = 0x6,
+        SETF = 0x8,
+        CLRF = 0xA,
+        NEGF = 0xC,
+        MOVWF = 0xE,
+    }
+
     class PicInstructionBuf
     {
         public int InstructionLength;
@@ -71,8 +89,13 @@ namespace picdasm
         public PicLiteralInstruction LiteralInstruction;
         public byte LiteralInstuctionLiteral;
 
+        // PicInstructionKind.Alu
         public PicAluInstruction AluInstruction;
         public byte AluInstructionFileReg;
+
+        // PicInstructionKind.Alu2
+        public PicAluInstruction2 AluInstruction2;
+        public byte AluInstruction2FileReg;
     }
 
     class PicInstructionDecoder
@@ -108,6 +131,15 @@ namespace picdasm
                 buf.InstrucitonKind = PicInstructionKind.Alu;
                 buf.AluInstruction = (PicAluInstruction)(buf.HiByte & (byte)PicAluInstruction.OpCodeMask);
                 buf.AluInstructionFileReg = buf.LoByte;
+
+                buf.InstructionLength = 2;
+                return true;
+            }
+            else if ((byte)(buf.HiByte & (byte)PicAluInstruction2.PrefixMask) == (byte)PicAluInstruction2.Prefix)
+            {
+                buf.InstrucitonKind = PicInstructionKind.Alu2;
+                buf.AluInstruction2 = (PicAluInstruction2)(buf.HiByte & (byte)PicAluInstruction2.OpCodeMask);
+                buf.AluInstruction2FileReg = buf.LoByte;
 
                 buf.InstructionLength = 2;
                 return true;
