@@ -117,20 +117,15 @@ namespace picdasm
             buf.HiByte = data[offset + 1];
             buf.LoByte = data[offset];
 
-            if ((byte)(buf.HiByte & (byte)PicLiteralInstruction.PrefixMask) == (byte) PicLiteralInstruction.Prefix)
+            if (buf.HiByte == 0x00)
+            {
+
+            }
+            else if ((byte)(buf.HiByte & (byte)PicLiteralInstruction.PrefixMask) == (byte) PicLiteralInstruction.Prefix)
             {
                 buf.InstrucitonKind = PicInstructionKind.Literal;
                 buf.LiteralInstruction = (PicLiteralInstruction)(buf.HiByte & (byte)PicLiteralInstruction.OpCodeMask);
                 buf.LiteralInstuctionLiteral = buf.LoByte;
-
-                buf.InstructionLength = 2;
-                return true;
-            }
-            else if ((byte)(buf.HiByte & (byte)PicAluInstruction.PrefixMask) == (byte)PicAluInstruction.Prefix)
-            {
-                buf.InstrucitonKind = PicInstructionKind.Alu;
-                buf.AluInstruction = (PicAluInstruction)(buf.HiByte & (byte)PicAluInstruction.OpCodeMask);
-                buf.AluInstructionFileReg = buf.LoByte;
 
                 buf.InstructionLength = 2;
                 return true;
@@ -140,6 +135,15 @@ namespace picdasm
                 buf.InstrucitonKind = PicInstructionKind.Alu2;
                 buf.AluInstruction2 = (PicAluInstruction2)(buf.HiByte & (byte)PicAluInstruction2.OpCodeMask);
                 buf.AluInstruction2FileReg = buf.LoByte;
+
+                buf.InstructionLength = 2;
+                return true;
+            }
+            else if ((byte)(buf.HiByte & (byte)PicAluInstruction.PrefixMask) == (byte)PicAluInstruction.Prefix)
+            {
+                buf.InstrucitonKind = PicInstructionKind.Alu;
+                buf.AluInstruction = (PicAluInstruction)(buf.HiByte & (byte)PicAluInstruction.OpCodeMask);
+                buf.AluInstructionFileReg = buf.LoByte;
 
                 buf.InstructionLength = 2;
                 return true;
