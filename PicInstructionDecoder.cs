@@ -5,10 +5,35 @@ namespace picdasm
     enum PicInstructionKind
     {
         Unknown,
+        Misc,
         Literal,
         Alu,
         Alu2,
         BraRCall,
+    }
+
+    enum PicMiscInstruction : byte
+    {
+        NOP = 0x00,
+        SLEEP = 0x03,
+        CLRWDT = 0x04,
+        PUSH = 0x05,
+        POP = 0x06,
+        DAW = 0x07,
+        TBLRD = 0x08,
+        TBLRDPostInc = 0x09,
+        TBLRDPostDec = 0x0A,
+        TBLRDPreInc = 0x0B,
+        TBLWR = 0x0C,
+        TBLWRPostInc = 0x0D,
+        TBLWRPostDec = 0x0E,
+        TBLWRPreInc = 0x0F,
+        RETFIE = 0x10,
+        RETFIEFast = 0x11,
+        RETURN = 0x12,
+        RETURNFast = 0x13,
+        CALLW = 0x14,
+        RESET = 0xFF,
     }
 
     enum PicLiteralInstruction : byte
@@ -100,6 +125,9 @@ namespace picdasm
 
         public PicInstructionKind InstrucitonKind;
 
+        // PicInstructionKind.Misc
+        public PicMiscInstruction MiscInstruction;
+
         // PicInstructionKind.Literal
         public PicLiteralInstruction LiteralInstruction;
         public byte LiteralInstuctionLiteral;
@@ -138,7 +166,13 @@ namespace picdasm
 
             if (buf.HiByte == 0x00)
             {
+                buf.InstrucitonKind = PicInstructionKind.Misc;
+                buf.MiscInstruction = (PicMiscInstruction)buf.LoByte;
 
+                // TODO: check
+
+                buf.InstructionLength = 2;
+                return true;
             }
             else if ((byte)(buf.HiByte & (byte)PicLiteralInstruction.PrefixMask) == (byte) PicLiteralInstruction.Prefix)
             {

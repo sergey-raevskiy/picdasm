@@ -17,7 +17,11 @@ namespace picdasm
                 if (!dec.DecodeAt(buf, pc))
                     throw new Exception(string.Format("Failed to decode instruciton at (0x{0:X4})", pc));
 
-                if (buf.InstrucitonKind == PicInstructionKind.Literal)
+                if (buf.InstrucitonKind == PicInstructionKind.Misc)
+                {
+                    Console.WriteLine("{0}", buf.MiscInstruction);
+                }
+                else if (buf.InstrucitonKind == PicInstructionKind.Literal)
                 {
                     Console.WriteLine("{0}", buf.LiteralInstruction);
                 }
