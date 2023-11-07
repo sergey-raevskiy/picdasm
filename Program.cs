@@ -23,7 +23,7 @@ namespace picdasm
                 }
                 else if (buf.InstrucitonKind == PicInstructionKind.Literal)
                 {
-                    Console.WriteLine("{0}", buf.LiteralInstruction);
+                    Console.WriteLine("{0}", buf.LiteralInstruction.OpCode);
                 }
                 else if (buf.InstrucitonKind == PicInstructionKind.Alu)
                 {
@@ -31,7 +31,7 @@ namespace picdasm
                 }
                 else if (buf.InstrucitonKind == PicInstructionKind.Alu2)
                 {
-                    Console.WriteLine("{0}", buf.AluInstruction2);
+                    Console.WriteLine("{0}", buf.AluInstruction2.OpCode);
                 }
                 else if (buf.InstrucitonKind == PicInstructionKind.BraRCall)
                 {
