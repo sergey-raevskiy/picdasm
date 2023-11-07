@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 
@@ -12,10 +13,27 @@ namespace picdasm
             PicInstructionBuf buf = new PicInstructionBuf();
             int pc = 0;
 
+            List<string> unk = new List<string>()
+            {
+                ".dw 0x001B",
+                ".dw 0x0048",
+                ".dw 0x0002",
+                ".dw 0x00C0",
+                ".dw 0x0082",
+                ".dw 0x00F1",
+                ".dw 0x0080",
+                ".dw 0x0040",
+                ".dw 0x0082",
+                ".dw 0x0090",
+                ".dw 0x0001",
+                ".dw 0x0075",
+            };
+
             while (true)
             {
                 if (!dec.DecodeAt(buf, pc))
-                    throw new Exception(string.Format("Failed to decode instruciton at (0x{0:X4})", pc));
+                    //throw new Exception(string.Format("Failed to decode instruciton at (0x{0:X4})", pc));
+                    break;
 
                 if (buf.InstrucitonKind == PicInstructionKind.Misc)
                 {
@@ -41,10 +59,57 @@ namespace picdasm
                 {
                     Console.WriteLine("{0}", PicInstructionKind.RCALL);
                 }
+                else if (buf.InstrucitonKind == PicInstructionKind.GOTO)
+                {
+                    Console.WriteLine("GOTO 0x{0:X4}", buf.GOTO.Addr);
+                }
+                else if (buf.InstrucitonKind == PicInstructionKind.CALL)
+                {
+                    Console.WriteLine("GOTO 0x{0:X4}", buf.CALL.Addr);
+                }
+                else if (buf.InstrucitonKind == PicInstructionKind.TBLRD)
+                {
+                    Console.WriteLine("TBLRD");
+                }
+                else if (buf.InstrucitonKind == PicInstructionKind.TBLWR)
+                {
+                    Console.WriteLine("TBLWR");
+                }
+                else if (buf.InstrucitonKind == PicInstructionKind.MOVFF)
+                {
+                    Console.WriteLine("MOVFF");
+                }
+                else if (buf.InstrucitonKind == PicInstructionKind.ConditionalBranch)
+                {
+                    Console.WriteLine("{0}", buf.ConditionalBranch.OpCode);
+                }
+                else if (buf.InstrucitonKind == PicInstructionKind.LFSR)
+                {
+                    Console.WriteLine("LFSR");
+                }
+                else if (buf.InstrucitonKind == PicInstructionKind.BitInstruction)
+                {
+                    Console.WriteLine("{0}", buf.BitInstruction.OpCode);
+                }
+                else if (buf.InstrucitonKind == PicInstructionKind.RETURN)
+                {
+                    Console.WriteLine("RETURN");
+                }
+                else if (buf.InstrucitonKind == PicInstructionKind.RETFIE)
+                {
+                    Console.WriteLine("RETFIE");
+                }
+                else if (buf.InstrucitonKind == PicInstructionKind.NOPEx)
+                {
+                    Console.WriteLine("NOPEX");
+                }
                 else if (buf.InstrucitonKind == PicInstructionKind.Unknown)
                 {
-                    Console.WriteLine(".dw 0x{0:X2}{1:X2}", buf.HiByte, buf.LoByte);
-                    return;
+                    string instr = string.Format(".dw 0x{0:X2}{1:X2}", buf.HiByte, buf.LoByte);
+
+                    Console.WriteLine(instr);
+                    if (!unk.Contains(instr))
+                        return;
                 }
                 else
                 {

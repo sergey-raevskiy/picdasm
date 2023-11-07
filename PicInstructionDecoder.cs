@@ -15,6 +15,14 @@ namespace picdasm
         Alu2,
         BRA,
         RCALL,
+        GOTO,
+        MOVFF,
+        ConditionalBranch,
+        LFSR,
+        BitInstruction,
+        CALL,
+        CALLFast,
+        NOPEx,
     }
 
     enum PicMiscInstruction : byte
@@ -134,6 +142,74 @@ namespace picdasm
         }
     }
 
+    struct Piс20bitAbsInstruciton
+    {
+        public int Addr;
+
+        public void Init(byte loByte, byte exHi, byte exLo)
+        {
+            Addr = loByte;
+            Addr |= ((exHi & 0xf) << 16) | (exLo << 8);
+            Addr <<= 1;
+        }
+    }
+
+    struct PicMOVFFInstuction
+    {
+        public int Source;
+        public int Dest;
+
+        public void Init(byte hiByte, byte loByte, byte exHi, byte exLo)
+        {
+            Source = ((hiByte & 0xf) << 8) | loByte;
+            Dest = ((exHi & 0xf) << 8) | exLo;
+        }
+    }
+
+    struct PicConditionalBranchInstruction
+    {
+        public enum BranchOp
+        {
+            BZ = 0x0,
+            BNZ = 0x1,
+            BC = 0x2,
+            BNC = 0x3,
+            BOV = 0x4,
+            BNOV = 0x5,
+            BN = 0x6,
+            BNN = 0x7,
+        }
+
+        public BranchOp OpCode;
+        public int Offset;
+    }
+
+    struct PicLFSRInstruction
+    {
+        public int LfsrN;
+        public uint Literal;
+    }
+
+    struct PicBitInstruction
+    {
+        public enum BitOp : byte
+        {
+            BSF = 0b_0000_0000,
+            BCF = 0b_0001_0000,
+            BTFSS = 0b_0010_0000,
+            BTFSC = 0b_0011_0000,
+
+            BTG = 0b_0111_0000,
+        }
+
+        public BitOp OpCode;
+    }
+
+    struct PicNOPExInstruction
+    {
+        int Arg;
+    }
+
     class PicInstructionBuf
     {
         public int InstructionLength;
@@ -152,6 +228,14 @@ namespace picdasm
         public PicAluInstruction2 AluInstruction2;
         public PicBraRCallInstruction Bra;
         public PicBraRCallInstruction RCall;
+        public Piс20bitAbsInstruciton GOTO;
+        public PicMOVFFInstuction MOVFF;
+        public PicConditionalBranchInstruction ConditionalBranch;
+        public PicLFSRInstruction LFSR;
+        public PicBitInstruction BitInstruction;
+        public Piс20bitAbsInstruciton CALL;
+        public Piс20bitAbsInstruciton CALLFast;
+        public PicNOPExInstruction NOPEx;
     }
 
     class PicInstructionDecoder
@@ -210,14 +294,14 @@ namespace picdasm
                     buf.InstructionLength = 2;
                     return true;
                 }
-                else if ((buf.LoByte & 0xFE) == 0xFD)
+                else if ((buf.LoByte & 0xFE) == 0x10)
                 {
                     buf.InstrucitonKind = PicInstructionKind.RETFIE;
                     buf.RETFIE.Fast = (buf.LoByte & 0x1) != 0;
                     buf.InstructionLength = 2;
                     return true;
                 }
-                else if ((buf.LoByte & 0xFE) == 0xFE)
+                else if ((buf.LoByte & 0xFE) == 0x12)
                 {
                     buf.InstrucitonKind = PicInstructionKind.RETURN;
                     buf.RETURN.Fast = (buf.LoByte & 0x1) != 0;
@@ -269,6 +353,73 @@ namespace picdasm
                     buf.Bra.Init(buf.HiByte, buf.LoByte);
                 }
 
+                buf.InstructionLength = 2;
+                return true;
+            }
+            else if ((byte)(buf.HiByte & 0b_1111_1000) == 0b_1110_0000)
+            {
+                buf.InstrucitonKind = PicInstructionKind.ConditionalBranch;
+                buf.ConditionalBranch.OpCode = (PicConditionalBranchInstruction.BranchOp)(buf.HiByte & 0b_0000_0111);
+                buf.ConditionalBranch.Offset = buf.LoByte;
+                if ((buf.LoByte & 0x80) != 0)
+                    buf.ConditionalBranch.Offset |= unchecked((int)0xFFFFFF00);
+                buf.ConditionalBranch.Offset <<= 1;
+
+                buf.InstructionLength = 2;
+                return true;
+            }
+            else if ((byte)(buf.HiByte & 0b_1111_0000) == 0b_1100_0000)
+            {
+                if (offset + 4 > data.Length)
+                    return false;
+
+                buf.InstrucitonKind = PicInstructionKind.MOVFF;
+                buf.MOVFF.Init(buf.HiByte, buf.LoByte, data[offset + 3], data[offset + 2]);
+                buf.InstructionLength = 4;
+                return true;
+            }
+            else if (buf.HiByte == 0b_1110_1111)
+            {
+                if (offset + 4 > data.Length)
+                    return false;
+
+                buf.InstrucitonKind = PicInstructionKind.GOTO;
+                buf.GOTO.Init(buf.LoByte, data[offset + 3], data[offset + 2]);
+                buf.InstructionLength = 4;
+                return true;
+            }
+            else if (buf.HiByte == 0b_1110_1110 &&
+                     (byte)(buf.LoByte & 0b_1100_0000) == 0b_0000_0000)
+            {
+                if (offset + 4 > data.Length)
+                    return false;
+
+                buf.InstrucitonKind = PicInstructionKind.LFSR;
+                buf.LFSR.LfsrN = (buf.LoByte >> 4) & 3;
+                buf.LFSR.Literal = data[offset + 2] | (uint)((buf.LoByte & 0xf) << 8);
+                buf.InstructionLength = 4;
+                return true;
+            }
+            else if ((byte)(buf.HiByte & 0b_1100_0000) == 0b_1000_0000)
+            {
+                buf.InstrucitonKind = PicInstructionKind.BitInstruction;
+                buf.BitInstruction.OpCode = ((PicBitInstruction.BitOp)(buf.HiByte & 0b_0011_0000));
+                buf.InstructionLength = 2;
+                return true;
+            }
+            else if (buf.HiByte == 0b_1110_1100)
+            {
+                if (offset + 4 > data.Length)
+                    return false;
+
+                buf.InstrucitonKind = PicInstructionKind.CALL;
+                buf.CALL.Init(buf.LoByte, data[offset + 3], data[offset + 2]);
+                buf.InstructionLength = 4;
+                return true;
+            }
+            else if ((byte)(buf.HiByte & 0b_1111_0000) == 0b_1111_0000)
+            {
+                buf.InstrucitonKind = PicInstructionKind.NOPEx;
                 buf.InstructionLength = 2;
                 return true;
             }
