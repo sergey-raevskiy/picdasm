@@ -64,7 +64,7 @@ namespace picdasm
             {
                 buf.InstrucitonKind = PicInstructionKind.Literal;
                 buf.LiteralInstruction = (PicLiteralInstruction)(ir & (byte)PicLiteralInstruction.OpCodeMask);
-                buf.LiteralInstuctionLiteral = data[offset];
+                buf.LiteralInstuctionLiteral = buf.LoByte;
 
                 buf.InstructionLength = 2;
                 return true;
