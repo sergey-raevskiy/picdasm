@@ -58,12 +58,10 @@ namespace picdasm
             buf.HiByte = data[offset + 1];
             buf.LoByte = data[offset];
 
-            byte ir = buf.HiByte;
-
-            if ((byte)(ir & (byte)PicLiteralInstruction.PrefixMask) == (byte) PicLiteralInstruction.Prefix)
+            if ((byte)(buf.HiByte & (byte)PicLiteralInstruction.PrefixMask) == (byte) PicLiteralInstruction.Prefix)
             {
                 buf.InstrucitonKind = PicInstructionKind.Literal;
-                buf.LiteralInstruction = (PicLiteralInstruction)(ir & (byte)PicLiteralInstruction.OpCodeMask);
+                buf.LiteralInstruction = (PicLiteralInstruction)(buf.HiByte & (byte)PicLiteralInstruction.OpCodeMask);
                 buf.LiteralInstuctionLiteral = buf.LoByte;
 
                 buf.InstructionLength = 2;
