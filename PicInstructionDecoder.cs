@@ -169,10 +169,35 @@ namespace picdasm
                 buf.InstrucitonKind = PicInstructionKind.Misc;
                 buf.MiscInstruction = (PicMiscInstruction)buf.LoByte;
 
-                // TODO: check
+                switch (buf.LoByte)
+                {
+                    case (byte)PicMiscInstruction.NOP:
+                    case (byte)PicMiscInstruction.SLEEP:
+                    case (byte)PicMiscInstruction.CLRWDT:
+                    case (byte)PicMiscInstruction.PUSH:
+                    case (byte)PicMiscInstruction.POP:
+                    case (byte)PicMiscInstruction.DAW:
+                    case (byte)PicMiscInstruction.TBLRD:
+                    case (byte)PicMiscInstruction.TBLRDPostInc:
+                    case (byte)PicMiscInstruction.TBLRDPostDec:
+                    case (byte)PicMiscInstruction.TBLRDPreInc:
+                    case (byte)PicMiscInstruction.TBLWR:
+                    case (byte)PicMiscInstruction.TBLWRPostInc:
+                    case (byte)PicMiscInstruction.TBLWRPostDec:
+                    case (byte)PicMiscInstruction.TBLWRPreInc:
+                    case (byte)PicMiscInstruction.RETFIE:
+                    case (byte)PicMiscInstruction.RETFIEFast:
+                    case (byte)PicMiscInstruction.RETURN:
+                    case (byte)PicMiscInstruction.RETURNFast:
+                    case (byte)PicMiscInstruction.CALLW:
+                    case (byte)PicMiscInstruction.RESET:
+                        buf.MiscInstruction = (PicMiscInstruction)buf.LoByte;
+                        buf.InstructionLength = 2;
+                        return true;
 
-                buf.InstructionLength = 2;
-                return true;
+                    default:
+                        break;
+                }
             }
             else if ((byte)(buf.HiByte & (byte)PicLiteralInstruction.PrefixMask) == (byte) PicLiteralInstruction.Prefix)
             {
