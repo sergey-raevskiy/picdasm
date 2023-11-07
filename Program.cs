@@ -145,11 +145,16 @@ namespace picdasm
 
         }
 
-        private static void Run()
+        private static void Run(string[] args)
         {
+            if (args.Length == 0)
+                throw new Exception("usage: picdasm HEX_FILE");
+
+            string fileName = args[0];
+
             var progMemImage = new PicProgMemImage(0x20000);
 
-            using (var reader = File.OpenText(@"!!"))
+            using (var reader = File.OpenText(fileName))
             {
                 var hexReader = new IntelHexReader(reader);
                 var recordBuf = new IntelHexRecordBuf();
@@ -213,7 +218,7 @@ namespace picdasm
         {
             try
             {
-                Run();
+                Run(args);
                 return 0;
             }
             catch (Exception ex)
