@@ -8,6 +8,8 @@ namespace picdasm
         Misc,
         TBLRD,
         TBLWR,
+        RETFIE,
+        RETURN,
         Literal,
         Alu,
         Alu2,
@@ -24,10 +26,6 @@ namespace picdasm
         POP = 0x06,
         DAW = 0x07,
 
-        RETFIE = 0x10,
-        RETFIEFast = 0x11,
-        RETURN = 0x12,
-        RETURNFast = 0x13,
         CALLW = 0x14,
         RESET = 0xFF,
     }
@@ -43,6 +41,11 @@ namespace picdasm
     struct PicTblInstuction
     {
         public PicTblInstructionMode Mode;
+    }
+
+    struct PicRetInstuction
+    {
+        public bool Fast;
     }
 
     struct PicLiteralInstruction
@@ -144,6 +147,8 @@ namespace picdasm
         public PicMiscInstruction MiscInstruction;
         public PicTblInstuction TBLRD;
         public PicTblInstuction TBLWR;
+        public PicRetInstuction RETURN;
+        public PicRetInstuction RETFIE;
         public PicLiteralInstruction LiteralInstruction;
         public PicAluInstruction AluInstruction;
         public PicAluInstruction2 AluInstruction2;
@@ -183,10 +188,6 @@ namespace picdasm
                     case (byte)PicMiscInstruction.PUSH:
                     case (byte)PicMiscInstruction.POP:
                     case (byte)PicMiscInstruction.DAW:
-                    case (byte)PicMiscInstruction.RETFIE:
-                    case (byte)PicMiscInstruction.RETFIEFast:
-                    case (byte)PicMiscInstruction.RETURN:
-                    case (byte)PicMiscInstruction.RETURNFast:
                     case (byte)PicMiscInstruction.CALLW:
                     case (byte)PicMiscInstruction.RESET:
                         buf.MiscInstruction = (PicMiscInstruction)buf.LoByte;
@@ -201,11 +202,29 @@ namespace picdasm
                 {
                     buf.InstrucitonKind = PicInstructionKind.TBLRD;
                     buf.TBLRD.Mode = (PicTblInstructionMode)(buf.LoByte & 0x3);
+                    buf.InstructionLength = 2;
+                    return true;
                 }
                 else if ((buf.LoByte & 0xFC) == 0xC)
                 {
                     buf.InstrucitonKind = PicInstructionKind.TBLWR;
                     buf.TBLWR.Mode = (PicTblInstructionMode)(buf.LoByte & 0x3);
+                    buf.InstructionLength = 2;
+                    return true;
+                }
+                else if ((buf.LoByte & 0xFE) == 0xFD)
+                {
+                    buf.InstrucitonKind = PicInstructionKind.RETFIE;
+                    buf.RETFIE.Fast = (buf.LoByte & 0x1) != 0;
+                    buf.InstructionLength = 2;
+                    return true;
+                }
+                else if ((buf.LoByte & 0xFE) == 0xFE)
+                {
+                    buf.InstrucitonKind = PicInstructionKind.RETURN;
+                    buf.RETURN.Fast = (buf.LoByte & 0x1) != 0;
+                    buf.InstructionLength = 2;
+                    return true;
                 }
             }
             else if ((byte)(buf.HiByte & 0xF8) == 0x08)
