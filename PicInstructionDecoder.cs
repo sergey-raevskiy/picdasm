@@ -29,6 +29,9 @@ namespace picdasm
     class PicInstructionBuf
     {
         public int InstructionLength;
+        public byte HiByte;
+        public byte LoByte;
+
         public PicInstructionKind InstrucitonKind;
 
         // PicInstructionKind.Literal
@@ -52,7 +55,11 @@ namespace picdasm
                 return false;
             }
 
-            byte ir = data[offset + 1];
+            buf.HiByte = data[offset + 1];
+            buf.LoByte = data[offset];
+
+            byte ir = buf.HiByte;
+
             if ((byte)(ir & (byte)PicLiteralInstruction.PrefixMask) == (byte) PicLiteralInstruction.Prefix)
             {
                 buf.InstrucitonKind = PicInstructionKind.Literal;
