@@ -27,7 +27,7 @@ namespace picdasm
                 }
                 else if (buf.InstrucitonKind == PicInstructionKind.Alu)
                 {
-                    Console.WriteLine("{0}", buf.AluInstruction);
+                    Console.WriteLine("{0}", buf.AluInstruction.OpCode);
                 }
                 else if (buf.InstrucitonKind == PicInstructionKind.Alu2)
                 {

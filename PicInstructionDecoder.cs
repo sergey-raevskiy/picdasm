@@ -39,11 +39,6 @@ namespace picdasm
     struct PicLiteralInstruction
     {
         // 0 0 0 0  1 opcode:3 literal:8
-
-        public const byte Prefix = 0x08;
-        public const byte PrefixMask = 0xF8;
-        public const byte OpCodeMask = 0x07;
-
         public enum LiteralOp
         {
             SUBLW = 0x0,
@@ -63,11 +58,6 @@ namespace picdasm
     struct PicAluInstruction
     {
         // 0 opcode:5 d a f:8
-
-        public const byte Prefix = 0x00;
-        public const byte PrefixMask = 0x80;
-        public const byte OpCodeMask = 0x7C;
-
         public enum AluOp : byte
         {
             MULWF = 0x00,
@@ -100,11 +90,6 @@ namespace picdasm
 
     struct PicAluInstruction2
     {
-        // 0 1 1 0 opcode:3 a f:8 (ALU operations, do not write to W)
-        public const byte Prefix = 0x60;
-        public const byte PrefixMask = 0xF0;
-        public const byte OpCodeMask = 0x0E;
-
         public enum Alu2Op
         {
             CPFSLT = 0x0,
@@ -207,28 +192,29 @@ namespace picdasm
                         break;
                 }
             }
-            else if ((byte)(buf.HiByte & (byte)PicLiteralInstruction.PrefixMask) == (byte) PicLiteralInstruction.Prefix)
+            else if ((byte)(buf.HiByte & 0xF8) == 0x08)
             {
                 buf.InstrucitonKind = PicInstructionKind.Literal;
-                buf.LiteralInstruction.OpCode = (PicLiteralInstruction.LiteralOp)(buf.HiByte & PicLiteralInstruction.OpCodeMask);
+                buf.LiteralInstruction.OpCode = (PicLiteralInstruction.LiteralOp)(buf.HiByte & 0x07);
                 buf.LiteralInstruction.Literal = buf.LoByte;
 
                 buf.InstructionLength = 2;
                 return true;
             }
-            else if ((byte)(buf.HiByte & PicAluInstruction2.PrefixMask) == PicAluInstruction2.Prefix)
+            else if ((byte)(buf.HiByte & 0xF0) == 0x60)
             {
+                // 0 1 1 0 opcode:3 a f:8 (ALU operations, do not write to W)
                 buf.InstrucitonKind = PicInstructionKind.Alu2;
-                buf.AluInstruction2.OpCode = (PicAluInstruction2.Alu2Op)(buf.HiByte & PicAluInstruction2.OpCodeMask);
+                buf.AluInstruction2.OpCode = (PicAluInstruction2.Alu2Op)(buf.HiByte & 0x0E);
                 buf.AluInstruction2.FileReg = buf.LoByte;
 
                 buf.InstructionLength = 2;
                 return true;
             }
-            else if ((byte)(buf.HiByte & PicAluInstruction.PrefixMask) == PicAluInstruction.Prefix)
+            else if ((byte)(buf.HiByte & 0x80) == 0x00)
             {
                 buf.InstrucitonKind = PicInstructionKind.Alu;
-                buf.AluInstruction.OpCode = (PicAluInstruction.AluOp)(buf.HiByte & PicAluInstruction.OpCodeMask);
+                buf.AluInstruction.OpCode = (PicAluInstruction.AluOp)(buf.HiByte & 0x7C);
                 buf.AluInstruction.FileReg = buf.LoByte;
 
                 buf.InstructionLength = 2;
