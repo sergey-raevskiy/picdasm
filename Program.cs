@@ -21,9 +21,13 @@ namespace picdasm
                 {
                     Console.WriteLine("{0}", buf.LiteralInstruction);
                 }
+                else if (buf.InstrucitonKind == PicInstructionKind.Alu)
+                {
+                    Console.WriteLine("{0}", buf.AluInstruction);
+                }
                 else if (buf.InstrucitonKind == PicInstructionKind.Unknown)
                 {
-                    Console.WriteLine("{0}", buf.InstrucitonKind);
+                    Console.WriteLine(".dw 0x{0:X2}{1:X2}", buf.HiByte, buf.LoByte);
                 }
                 else
                 {
