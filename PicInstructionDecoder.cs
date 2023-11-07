@@ -2,93 +2,70 @@
 
 namespace picdasm
 {
+    enum PicInstructionKind
+    {
+        Unknown,
+        Literal,
+    }
+
+    enum PicLiteralInstruction : byte
+    {
+        // 0 0 0 0  1 opcode:3 literal:8
+
+        Prefix = 0x08,
+        PrefixMask = 0xF8,
+        OpCodeMask = 0x07,
+
+        SUBLW = 0x0,
+        IORLW = 0x1,
+        XORLW = 0x2,
+        ANDLW = 0x3,
+        RETLW = 0x4,
+        MULLW = 0x5,
+        MOVLW = 0x6,
+        ADDLW = 0x7,
+    }
+
+    class PicInstructionBuf
+    {
+        public int InstructionLength;
+        public PicInstructionKind InstrucitonKind;
+
+        // PicInstructionKind.Literal
+        public PicLiteralInstruction LiteralInstruction;
+        public byte LiteralInstuctionLiteral;
+    }
+
     class PicInstructionDecoder
     {
-        private InstructionDecoderHelper helper;
+        private readonly byte[] data;
 
         public PicInstructionDecoder(byte[] data)
         {
-            helper = new InstructionDecoderHelper(data);
+            this.data = data;
         }
 
-        private bool match;
-        private PicInstructionDecoder Pattern(string pattern)
+        public bool DecodeAt(PicInstructionBuf buf, int offset)
         {
-            match = helper.Match(pattern);
-            return this;
-        }
-
-        private PicInstructionDecoder Bind(char field, out byte val)
-        {
-            if (match)
+            if (offset + 2 > data.Length)
             {
-                val = (byte)helper.Fields[field];
-            }
-            else
-            {
-                val = 0;
+                return false;
             }
 
-            return this;
-        }
+            byte ir = data[offset + 1];
+            if ((byte)(ir & (byte)PicLiteralInstruction.PrefixMask) == (byte) PicLiteralInstruction.Prefix)
+            {
+                buf.InstrucitonKind = PicInstructionKind.Literal;
+                buf.LiteralInstruction = (PicLiteralInstruction)(ir & (byte)PicLiteralInstruction.OpCodeMask);
+                buf.LiteralInstuctionLiteral = data[offset];
 
-        private PicInstructionDecoder Bind(char field, out int val)
-        {
-            if (match)
-            {
-                val = (int)helper.Fields[field];
-            }
-            else
-            {
-                val = 0;
+                buf.InstructionLength = 2;
+                return true;
             }
 
-            return this;
-        }
-
-        private PicInstructionDecoder Bind<T>(char field, out T val)
-            where T : Enum
-        {
-            if (match)
-            {
-                val = (T)(object)(int)helper.Fields[field];
-            }
-            else
-            {
-                val = default(T);
-            }
-
-            return this;
-        }
-
-        private bool Match()
-        {
-            return match;
-        }
-
-        public bool IsMovLW(out byte literal)
-        {
-            return
-                Pattern("0000 1110 kkkk kkkk")
-                .Bind('k', out literal)
-                .Match();
-        }
-
-        public bool IsMovWF(out byte addr, out AddrMode mode)
-        {
-            return
-                Pattern("0110 111a ffff ffff")
-                .Bind('f', out addr)
-                .Bind('a', out mode)
-                .Match();
-        }
-
-        public bool IsBra(out int offset)
-        {
-            return
-                Pattern("1101 0`nnn nnnn nnnn")
-                .Bind('n', out offset)
-                .Match();
+            buf.InstrucitonKind = PicInstructionKind.Unknown;
+            buf.InstructionLength = 2;
+            return true;
         }
     }
 }

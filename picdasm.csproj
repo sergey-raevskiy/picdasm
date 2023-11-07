@@ -44,7 +44,6 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="AddrMode.cs" />
-    <Compile Include="BitMatcher.cs" />
     <Compile Include="IntelHexReader.cs" />
     <Compile Include="IntelHexRecordDumper.cs" />
     <Compile Include="IntelHexRecordParser.cs" />
