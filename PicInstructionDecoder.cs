@@ -6,6 +6,8 @@ namespace picdasm
     {
         Unknown,
         Misc,
+        TBLRD,
+        TBLWR,
         Literal,
         Alu,
         Alu2,
@@ -21,20 +23,26 @@ namespace picdasm
         PUSH = 0x05,
         POP = 0x06,
         DAW = 0x07,
-        TBLRD = 0x08,
-        TBLRDPostInc = 0x09,
-        TBLRDPostDec = 0x0A,
-        TBLRDPreInc = 0x0B,
-        TBLWR = 0x0C,
-        TBLWRPostInc = 0x0D,
-        TBLWRPostDec = 0x0E,
-        TBLWRPreInc = 0x0F,
+
         RETFIE = 0x10,
         RETFIEFast = 0x11,
         RETURN = 0x12,
         RETURNFast = 0x13,
         CALLW = 0x14,
         RESET = 0xFF,
+    }
+
+    enum PicTblInstructionMode : byte
+    {
+        None = 0x00,
+        PostIncrement = 0x01,
+        PostDecrement = 0x02,
+        PreIncrement = 0x03,
+    }
+
+    struct PicTblInstuction
+    {
+        public PicTblInstructionMode Mode;
     }
 
     struct PicLiteralInstruction
@@ -134,6 +142,8 @@ namespace picdasm
         public PicInstructionKind InstrucitonKind;
 
         public PicMiscInstruction MiscInstruction;
+        public PicTblInstuction TBLRD;
+        public PicTblInstuction TBLWR;
         public PicLiteralInstruction LiteralInstruction;
         public PicAluInstruction AluInstruction;
         public PicAluInstruction2 AluInstruction2;
@@ -173,14 +183,6 @@ namespace picdasm
                     case (byte)PicMiscInstruction.PUSH:
                     case (byte)PicMiscInstruction.POP:
                     case (byte)PicMiscInstruction.DAW:
-                    case (byte)PicMiscInstruction.TBLRD:
-                    case (byte)PicMiscInstruction.TBLRDPostInc:
-                    case (byte)PicMiscInstruction.TBLRDPostDec:
-                    case (byte)PicMiscInstruction.TBLRDPreInc:
-                    case (byte)PicMiscInstruction.TBLWR:
-                    case (byte)PicMiscInstruction.TBLWRPostInc:
-                    case (byte)PicMiscInstruction.TBLWRPostDec:
-                    case (byte)PicMiscInstruction.TBLWRPreInc:
                     case (byte)PicMiscInstruction.RETFIE:
                     case (byte)PicMiscInstruction.RETFIEFast:
                     case (byte)PicMiscInstruction.RETURN:
@@ -193,6 +195,17 @@ namespace picdasm
 
                     default:
                         break;
+                }
+
+                if ((buf.LoByte & 0xFC) == 0x8)
+                {
+                    buf.InstrucitonKind = PicInstructionKind.TBLRD;
+                    buf.TBLRD.Mode = (PicTblInstructionMode)(buf.LoByte & 0x3);
+                }
+                else if ((buf.LoByte & 0xFC) == 0xC)
+                {
+                    buf.InstrucitonKind = PicInstructionKind.TBLWR;
+                    buf.TBLWR.Mode = (PicTblInstructionMode)(buf.LoByte & 0x3);
                 }
             }
             else if ((byte)(buf.HiByte & 0xF8) == 0x08)
