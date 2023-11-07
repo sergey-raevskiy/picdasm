@@ -33,9 +33,13 @@ namespace picdasm
                 {
                     Console.WriteLine("{0}", buf.AluInstruction2.OpCode);
                 }
-                else if (buf.InstrucitonKind == PicInstructionKind.BraRCall)
+                else if (buf.InstrucitonKind == PicInstructionKind.BRA)
                 {
-                    Console.WriteLine("{0}", buf.BraRCallInstruction);
+                    Console.WriteLine("{0}", PicInstructionKind.BRA);
+                }
+                else if (buf.InstrucitonKind == PicInstructionKind.RCALL)
+                {
+                    Console.WriteLine("{0}", PicInstructionKind.RCALL);
                 }
                 else if (buf.InstrucitonKind == PicInstructionKind.Unknown)
                 {

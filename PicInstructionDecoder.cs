@@ -9,7 +9,8 @@ namespace picdasm
         Literal,
         Alu,
         Alu2,
-        BraRCall,
+        BRA,
+        RCALL,
     }
 
     enum PicMiscInstruction : byte
@@ -106,18 +107,22 @@ namespace picdasm
         public byte FileReg;
     }
 
-    enum PicBraRCallInstruction : byte
+    struct PicBraRCallInstruction
     {
         // 1 1 0 1 op addr:3  addr:8
-        Prefix = 0xD0,
-        PrefixMask = 0xF0,
-        OpCodeMask = 0x08,
+        public int Addr;
 
-        OffsetHiMask = 0x07,
-        OffsetHiSignMask = 0x04,
+        public void Init(byte hiByte, byte loByte)
+        {
+            Addr = ((hiByte & 0x7) << 8) | loByte;
 
-        BRA = 0x00,
-        RCALL = 0x80,
+            if ((hiByte & 0x4) != 0)
+            {
+                Addr |= unchecked((int)(0xFFFF8000));
+            }
+
+            Addr <<= 1;
+        }
     }
 
     class PicInstructionBuf
@@ -132,10 +137,8 @@ namespace picdasm
         public PicLiteralInstruction LiteralInstruction;
         public PicAluInstruction AluInstruction;
         public PicAluInstruction2 AluInstruction2;
-
-        // PicInstructionKind.BraRCall
-        public PicBraRCallInstruction BraRCallInstruction;
-        public int BraRCallInstructionOffset;
+        public PicBraRCallInstruction Bra;
+        public PicBraRCallInstruction RCall;
     }
 
     class PicInstructionDecoder
@@ -220,12 +223,18 @@ namespace picdasm
                 buf.InstructionLength = 2;
                 return true;
             }
-            else if ((byte)(buf.HiByte & (byte)PicBraRCallInstruction.PrefixMask) == (byte)PicBraRCallInstruction.Prefix)
+            else if ((byte)(buf.HiByte & 0xF0) == 0xD0)
             {
-                buf.InstrucitonKind = PicInstructionKind.BraRCall;
-                buf.BraRCallInstruction = (PicBraRCallInstruction)(buf.HiByte & (byte)PicBraRCallInstruction.OpCodeMask);
-
-                buf.BraRCallInstructionOffset = (byte)(buf.HiByte & (byte)PicBraRCallInstruction.OffsetHiMask);
+                if ((buf.HiByte & 0x08) != 0)
+                {
+                    buf.InstrucitonKind = PicInstructionKind.RCALL;
+                    buf.RCall.Init(buf.HiByte, buf.LoByte);
+                }
+                else
+                {
+                    buf.InstrucitonKind = PicInstructionKind.BRA;
+                    buf.Bra.Init(buf.HiByte, buf.LoByte);
+                }
 
                 buf.InstructionLength = 2;
                 return true;
