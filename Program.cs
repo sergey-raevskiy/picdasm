@@ -29,6 +29,10 @@ namespace picdasm
                 {
                     Console.WriteLine("{0}", buf.AluInstruction2);
                 }
+                else if (buf.InstrucitonKind == PicInstructionKind.BraRCall)
+                {
+                    Console.WriteLine("{0}", buf.BraRCallInstruction);
+                }
                 else if (buf.InstrucitonKind == PicInstructionKind.Unknown)
                 {
                     Console.WriteLine(".dw 0x{0:X2}{1:X2}", buf.HiByte, buf.LoByte);

@@ -8,6 +8,7 @@ namespace picdasm
         Literal,
         Alu,
         Alu2,
+        BraRCall,
     }
 
     enum PicLiteralInstruction : byte
@@ -77,6 +78,20 @@ namespace picdasm
         MOVWF = 0xE,
     }
 
+    enum PicBraRCallInstruction : byte
+    {
+        // 1 1 0 1 op addr:3  addr:8
+        Prefix = 0xD0,
+        PrefixMask = 0xF0,
+        OpCodeMask = 0x08,
+
+        OffsetHiMask = 0x07,
+        OffsetHiSignMask = 0x04,
+
+        BRA = 0x00,
+        RCALL = 0x80,
+    }
+
     class PicInstructionBuf
     {
         public int InstructionLength;
@@ -96,6 +111,10 @@ namespace picdasm
         // PicInstructionKind.Alu2
         public PicAluInstruction2 AluInstruction2;
         public byte AluInstruction2FileReg;
+
+        // PicInstructionKind.BraRCall
+        public PicBraRCallInstruction BraRCallInstruction;
+        public int BraRCallInstructionOffset;
     }
 
     class PicInstructionDecoder
@@ -144,6 +163,16 @@ namespace picdasm
                 buf.InstrucitonKind = PicInstructionKind.Alu;
                 buf.AluInstruction = (PicAluInstruction)(buf.HiByte & (byte)PicAluInstruction.OpCodeMask);
                 buf.AluInstructionFileReg = buf.LoByte;
+
+                buf.InstructionLength = 2;
+                return true;
+            }
+            else if ((byte)(buf.HiByte & (byte)PicBraRCallInstruction.PrefixMask) == (byte)PicBraRCallInstruction.Prefix)
+            {
+                buf.InstrucitonKind = PicInstructionKind.BraRCall;
+                buf.BraRCallInstruction = (PicBraRCallInstruction)(buf.HiByte & (byte)PicBraRCallInstruction.OpCodeMask);
+
+                buf.BraRCallInstructionOffset = (byte)(buf.HiByte & (byte)PicBraRCallInstruction.OffsetHiMask);
 
                 buf.InstructionLength = 2;
                 return true;
