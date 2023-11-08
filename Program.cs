@@ -5,118 +5,100 @@ using System.IO;
 
 namespace picdasm
 {
+    class InstructionWriter : IPicInstructionProcessor
+    {
+        private readonly TextWriter o;
+
+        private string ResolveAddr(byte addr, AccessMode access)
+        {
+            if (access == AccessMode.Access)
+            {
+                return string.Format("ACCESS_BANK(0x{0:X2})", addr);
+            }
+            else
+            {
+                return string.Format("CURRENT_BANK(0x{0:X2})", addr);
+            }
+        }
+
+        private string ResolveDest(byte addr, DestinationMode dest, AccessMode access)
+        {
+            if (dest == DestinationMode.W)
+            {
+                return "W";
+            }
+            else
+            {
+                return ResolveAddr(addr, access);
+            }
+        }
+
+
+        public InstructionWriter(TextWriter o)
+        {
+            this.o = o;
+        }
+
+        public void NOP()
+        {
+            o.WriteLine("__nop();");
+        }
+
+        public void CLRWDT()
+        {
+            o.WriteLine("clrwdt();");
+        }
+
+        public void MOVLW(byte literal)
+        {
+            o.WriteLine("W = 0x{0:X2};", literal);
+        }
+
+        public void MOVF(byte addr, DestinationMode dest, AccessMode access)
+        {
+            o.WriteLine("{0} = {1};", ResolveDest(addr, dest, access), ResolveAddr(addr, access));
+        }
+
+        public void CPFSEQ(byte addr, AccessMode mode)
+        {
+            o.WriteLine("if (!(W == {0}))", ResolveAddr(addr, mode));
+        }
+
+        public void MOVWF(byte addr, AccessMode mode)
+        {
+            o.WriteLine("{0} = W;", ResolveAddr(addr, mode));
+        }
+
+        public void BRA(int offset)
+        {
+            o.WriteLine("goto {0};", offset);
+        }
+
+        public void GOTO(int offset)
+        {
+            o.WriteLine("goto {0};", offset);
+        }
+
+        public void Unknown(byte hiByte, byte loByte)
+        {
+            throw new NotImplementedException(string.Format("Unknown instruciton {0:X2}{1:X2}", hiByte, loByte));
+        }
+    }
+
     internal class Program
     {
         private static void Disasm(byte[] prog)
         {
-            var dec = new PicInstructionDecoder(prog);
-            PicInstructionBuf buf = new PicInstructionBuf();
+            var dec = new PicInstructionDecoder(prog, new InstructionWriter(Console.Out));
             int pc = 0;
-
-            List<string> unk = new List<string>()
-            {
-                ".dw 0x001B",
-                ".dw 0x0048",
-                ".dw 0x0002",
-                ".dw 0x00C0",
-                ".dw 0x0082",
-                ".dw 0x00F1",
-                ".dw 0x0080",
-                ".dw 0x0040",
-                ".dw 0x0082",
-                ".dw 0x0090",
-                ".dw 0x0001",
-                ".dw 0x0075",
-            };
 
             while (true)
             {
-                if (!dec.DecodeAt(buf, pc))
-                    //throw new Exception(string.Format("Failed to decode instruciton at (0x{0:X4})", pc));
+                int len = dec.DecodeAt(pc);
+                if (len == 0)
                     break;
 
-                if (buf.InstrucitonKind == PicInstructionKind.Misc)
-                {
-                    Console.WriteLine("{0}", buf.MiscInstruction);
-                }
-                else if (buf.InstrucitonKind == PicInstructionKind.Literal)
-                {
-                    Console.WriteLine("{0}", buf.LiteralInstruction.OpCode);
-                }
-                else if (buf.InstrucitonKind == PicInstructionKind.Alu)
-                {
-                    Console.WriteLine("{0}", buf.AluInstruction.OpCode);
-                }
-                else if (buf.InstrucitonKind == PicInstructionKind.Alu2)
-                {
-                    Console.WriteLine("{0}", buf.AluInstruction2.OpCode);
-                }
-                else if (buf.InstrucitonKind == PicInstructionKind.BRA)
-                {
-                    Console.WriteLine("{0}", PicInstructionKind.BRA);
-                }
-                else if (buf.InstrucitonKind == PicInstructionKind.RCALL)
-                {
-                    Console.WriteLine("{0}", PicInstructionKind.RCALL);
-                }
-                else if (buf.InstrucitonKind == PicInstructionKind.GOTO)
-                {
-                    Console.WriteLine("GOTO 0x{0:X4}", buf.GOTO.Addr);
-                }
-                else if (buf.InstrucitonKind == PicInstructionKind.CALL)
-                {
-                    Console.WriteLine("GOTO 0x{0:X4}", buf.CALL.Addr);
-                }
-                else if (buf.InstrucitonKind == PicInstructionKind.TBLRD)
-                {
-                    Console.WriteLine("TBLRD");
-                }
-                else if (buf.InstrucitonKind == PicInstructionKind.TBLWR)
-                {
-                    Console.WriteLine("TBLWR");
-                }
-                else if (buf.InstrucitonKind == PicInstructionKind.MOVFF)
-                {
-                    Console.WriteLine("MOVFF");
-                }
-                else if (buf.InstrucitonKind == PicInstructionKind.ConditionalBranch)
-                {
-                    Console.WriteLine("{0}", buf.ConditionalBranch.OpCode);
-                }
-                else if (buf.InstrucitonKind == PicInstructionKind.LFSR)
-                {
-                    Console.WriteLine("LFSR");
-                }
-                else if (buf.InstrucitonKind == PicInstructionKind.BitInstruction)
-                {
-                    Console.WriteLine("{0}", buf.BitInstruction.OpCode);
-                }
-                else if (buf.InstrucitonKind == PicInstructionKind.RETURN)
-                {
-                    Console.WriteLine("RETURN");
-                }
-                else if (buf.InstrucitonKind == PicInstructionKind.RETFIE)
-                {
-                    Console.WriteLine("RETFIE");
-                }
-                else if (buf.InstrucitonKind == PicInstructionKind.NOPEx)
-                {
-                    Console.WriteLine("NOPEX");
-                }
-                else if (buf.InstrucitonKind == PicInstructionKind.Unknown)
-                {
-                    string instr = string.Format(".dw 0x{0:X2}{1:X2}", buf.HiByte, buf.LoByte);
-
-                    Console.WriteLine(instr);
-                    if (!unk.Contains(instr))
-                        return;
-                }
-                else
-                {
-                    Debug.Assert(false);
-                }
-
-                pc += buf.InstructionLength;
+                pc+= len;
             }
         }
 

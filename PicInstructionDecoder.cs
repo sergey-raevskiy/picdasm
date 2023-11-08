@@ -2,431 +2,297 @@
 
 namespace picdasm
 {
-    enum PicInstructionKind
+    enum AccessMode
     {
-        Unknown,
-        Misc,
-        TBLRD,
-        TBLWR,
-        RETFIE,
-        RETURN,
-        Literal,
-        Alu,
-        Alu2,
-        BRA,
-        RCALL,
-        GOTO,
-        MOVFF,
-        ConditionalBranch,
-        LFSR,
-        BitInstruction,
-        CALL,
-        CALLFast,
-        NOPEx,
+        Access = 0x00,
+        Banked = 0x01,
     }
 
-    enum PicMiscInstruction : byte
+    enum DestinationMode
     {
-        NOP = 0x00,
-        SLEEP = 0x03,
-        CLRWDT = 0x04,
-        PUSH = 0x05,
-        POP = 0x06,
-        DAW = 0x07,
-
-        CALLW = 0x14,
-        RESET = 0xFF,
+        W = 0x00,
+        F = 0x02,
     }
 
-    enum PicTblInstructionMode : byte
+    interface IPicInstructionProcessor
     {
-        None = 0x00,
-        PostIncrement = 0x01,
-        PostDecrement = 0x02,
-        PreIncrement = 0x03,
-    }
+        // Miscellaneous instructions
+        void NOP();
+        //void SLEEP();
+        void CLRWDT();
+        //void PUSH();
+        //void POP();
+        //void DAW();
 
-    struct PicTblInstuction
-    {
-        public PicTblInstructionMode Mode;
-    }
+        // Literal operations: W ← OP(k,W)
+        //void SUBLW(byte literal);
+        //void IORLW(byte literal);
+        //void XORLW(byte literal);
+        //void ANDLW(byte literal);
+        //void RETLW(byte literal);
+        //void MULLW(byte literal);
+        void MOVLW(byte literal);
 
-    struct PicRetInstuction
-    {
-        public bool Fast;
-    }
+        // register ALU operations: dest ← OP(f,W)
+        //void MULWF(byte addr, AccessMode access);
+        //void DECF(byte addr, DestinationMode dest, AccessMode access);
+        //void IORWF(byte addr, DestinationMode dest, AccessMode access);
+        //void ANDWF(byte addr, DestinationMode dest, AccessMode access);
+        //void XORWF(byte addr, DestinationMode dest, AccessMode access);
+        //void COMF(byte addr, DestinationMode dest, AccessMode access);
+        //void ADDWFC(byte addr, DestinationMode dest, AccessMode access);
+        //void ADDWF(byte addr, DestinationMode dest, AccessMode access);
+        //void INCF(byte addr, DestinationMode dest, AccessMode access);
+        //void DECFSZ(byte addr, DestinationMode dest, AccessMode access);
+        //void RRCF(byte addr, DestinationMode dest, AccessMode access);
+        //void RLCF(byte addr, DestinationMode dest, AccessMode access);
+        //void SWAPF(byte addr, DestinationMode dest, AccessMode access);
+        //void INCFSZ(byte addr, DestinationMode dest, AccessMode access);
+        //void RRNCF(byte addr, DestinationMode dest, AccessMode access);
+        //void RLNCF(byte addr, DestinationMode dest, AccessMode access);
+        //void INFSNZ(byte addr, DestinationMode dest, AccessMode access);
+        //void DCFSNZ(byte addr, DestinationMode dest, AccessMode access);
+        void MOVF(byte addr, DestinationMode dest, AccessMode access);
+        //void SUBFWB(byte addr, DestinationMode dest, AccessMode access);
+        //void SUBWFB(byte addr, DestinationMode dest, AccessMode access);
+        //void SUBWF(byte addr, DestinationMode dest, AccessMode access);
 
-    struct PicLiteralInstruction
-    {
-        public enum LiteralOp
-        {
-            SUBLW = 0x0,
-            IORLW = 0x1,
-            XORLW = 0x2,
-            ANDLW = 0x3,
-            RETLW = 0x4,
-            MULLW = 0x5,
-            MOVLW = 0x6,
-            ADDLW = 0x7,
-        }
+        // register ALU operations, do not write to W
+        //void CPFSLT(byte addr, AccessMode mode);
+        void CPFSEQ(byte addr, AccessMode mode);
+        //void CPFSGT(byte addr, AccessMode mode);
+        //void TSTFSZ(byte addr, AccessMode mode);
+        //void SETF(byte addr, AccessMode mode);
+        //void CLRF(byte addr, AccessMode mode);
+        //void NEGF(byte addr, AccessMode mode);
+        void MOVWF(byte addr, AccessMode mode);
 
-        public LiteralOp OpCode;
-        public byte Literal;
-    }
+        void BRA(int offset);
 
-    struct PicAluInstruction
-    {
-        public enum AluOp : byte
-        {
-            MULWF = 0x00,
-            DECF = 0x04,
-            IORWF = 0x10,
-            ANDWF = 0x14,
-            XORWF = 0x18,
-            COMF = 0x1C,
-            ADDWFC = 0x20,
-            ADDWF = 0x24,
-            INCF = 0x28,
-            DECFSZ = 0x2C,
-            RRCF = 0x30,
-            RLCF = 0x34,
-            SWAPF = 0x38,
-            INCFSZ = 0x3C,
-            RRNCF = 0x40,
-            RLNCF = 0x44,
-            INFSNZ = 0x48,
-            DCFSNZ = 0x4C,
-            MOVF = 0x50,
-            SUBFWB = 0x54,
-            SUBWFB = 0x58,
-            SUBWF = 0x5C,
-        }
+        void GOTO(int addr);
 
-        public AluOp OpCode;
-        public byte FileReg;
-    }
-
-    struct PicAluInstruction2
-    {
-        public enum Alu2Op
-        {
-            CPFSLT = 0x0,
-            CPFSEQ = 0x2,
-            CPFSGT = 0x4,
-            TSTFSZ = 0x6,
-            SETF = 0x8,
-            CLRF = 0xA,
-            NEGF = 0xC,
-            MOVWF = 0xE,
-        }
-
-        public Alu2Op OpCode;
-        public byte FileReg;
-    }
-
-    struct PicBraRCallInstruction
-    {
-        // 1 1 0 1 op addr:3  addr:8
-        public int Addr;
-
-        public void Init(byte hiByte, byte loByte)
-        {
-            Addr = ((hiByte & 0x7) << 8) | loByte;
-
-            if ((hiByte & 0x4) != 0)
-            {
-                Addr |= unchecked((int)(0xFFFF8000));
-            }
-
-            Addr <<= 1;
-        }
-    }
-
-    struct Piс20bitAbsInstruciton
-    {
-        public int Addr;
-
-        public void Init(byte loByte, byte exHi, byte exLo)
-        {
-            Addr = loByte;
-            Addr |= ((exHi & 0xf) << 16) | (exLo << 8);
-            Addr <<= 1;
-        }
-    }
-
-    struct PicMOVFFInstuction
-    {
-        public int Source;
-        public int Dest;
-
-        public void Init(byte hiByte, byte loByte, byte exHi, byte exLo)
-        {
-            Source = ((hiByte & 0xf) << 8) | loByte;
-            Dest = ((exHi & 0xf) << 8) | exLo;
-        }
-    }
-
-    struct PicConditionalBranchInstruction
-    {
-        public enum BranchOp
-        {
-            BZ = 0x0,
-            BNZ = 0x1,
-            BC = 0x2,
-            BNC = 0x3,
-            BOV = 0x4,
-            BNOV = 0x5,
-            BN = 0x6,
-            BNN = 0x7,
-        }
-
-        public BranchOp OpCode;
-        public int Offset;
-    }
-
-    struct PicLFSRInstruction
-    {
-        public int LfsrN;
-        public uint Literal;
-    }
-
-    struct PicBitInstruction
-    {
-        public enum BitOp : byte
-        {
-            BSF = 0b_0000_0000,
-            BCF = 0b_0001_0000,
-            BTFSS = 0b_0010_0000,
-            BTFSC = 0b_0011_0000,
-
-            BTG = 0b_0111_0000,
-        }
-
-        public BitOp OpCode;
-    }
-
-    struct PicNOPExInstruction
-    {
-        int Arg;
-    }
-
-    class PicInstructionBuf
-    {
-        public int InstructionLength;
-        public byte HiByte;
-        public byte LoByte;
-
-        public PicInstructionKind InstrucitonKind;
-
-        public PicMiscInstruction MiscInstruction;
-        public PicTblInstuction TBLRD;
-        public PicTblInstuction TBLWR;
-        public PicRetInstuction RETURN;
-        public PicRetInstuction RETFIE;
-        public PicLiteralInstruction LiteralInstruction;
-        public PicAluInstruction AluInstruction;
-        public PicAluInstruction2 AluInstruction2;
-        public PicBraRCallInstruction Bra;
-        public PicBraRCallInstruction RCall;
-        public Piс20bitAbsInstruciton GOTO;
-        public PicMOVFFInstuction MOVFF;
-        public PicConditionalBranchInstruction ConditionalBranch;
-        public PicLFSRInstruction LFSR;
-        public PicBitInstruction BitInstruction;
-        public Piс20bitAbsInstruciton CALL;
-        public Piс20bitAbsInstruciton CALLFast;
-        public PicNOPExInstruction NOPEx;
+        void Unknown(byte hiByte, byte loByte);
     }
 
     class PicInstructionDecoder
     {
         private readonly byte[] data;
+        private IPicInstructionProcessor p;
 
-        public PicInstructionDecoder(byte[] data)
+        public PicInstructionDecoder(byte[] data, IPicInstructionProcessor p)
         {
             this.data = data;
+            this.p = p;
         }
 
-        public bool DecodeAt(PicInstructionBuf buf, int offset)
+        private static AccessMode Access(byte hiByte)
         {
-            if (offset + 2 > data.Length)
+            byte access = (byte)(hiByte & 0x01);
+            switch (access)
             {
-                return false;
+                case (byte)AccessMode.Access:
+                case (byte)AccessMode.Banked:
+                    return (AccessMode)access;
+
+                default:
+                    throw new InvalidOperationException();
             }
+        }
 
-            buf.HiByte = data[offset + 1];
-            buf.LoByte = data[offset];
-
-            if (buf.HiByte == 0b_0000_0000)
+        private static DestinationMode Destination(byte hiByte)
+        {
+            byte dest = (byte)(hiByte & 0x02);
+            switch (dest)
             {
-                buf.InstrucitonKind = PicInstructionKind.Misc;
-                buf.MiscInstruction = (PicMiscInstruction)buf.LoByte;
+                case (byte)DestinationMode.W:
+                case (byte)DestinationMode.F:
+                    return (DestinationMode)dest;
 
-                switch (buf.LoByte)
-                {
-                    case (byte)PicMiscInstruction.NOP:
-                    case (byte)PicMiscInstruction.SLEEP:
-                    case (byte)PicMiscInstruction.CLRWDT:
-                    case (byte)PicMiscInstruction.PUSH:
-                    case (byte)PicMiscInstruction.POP:
-                    case (byte)PicMiscInstruction.DAW:
-                    case (byte)PicMiscInstruction.CALLW:
-                    case (byte)PicMiscInstruction.RESET:
-                        buf.MiscInstruction = (PicMiscInstruction)buf.LoByte;
-                        buf.InstructionLength = 2;
-                        return true;
-
-                    default:
-                        break;
-                }
-
-                if ((buf.LoByte & 0xFC) == 0x8)
-                {
-                    buf.InstrucitonKind = PicInstructionKind.TBLRD;
-                    buf.TBLRD.Mode = (PicTblInstructionMode)(buf.LoByte & 0x3);
-                    buf.InstructionLength = 2;
-                    return true;
-                }
-                else if ((buf.LoByte & 0xFC) == 0xC)
-                {
-                    buf.InstrucitonKind = PicInstructionKind.TBLWR;
-                    buf.TBLWR.Mode = (PicTblInstructionMode)(buf.LoByte & 0x3);
-                    buf.InstructionLength = 2;
-                    return true;
-                }
-                else if ((buf.LoByte & 0xFE) == 0x10)
-                {
-                    buf.InstrucitonKind = PicInstructionKind.RETFIE;
-                    buf.RETFIE.Fast = (buf.LoByte & 0x1) != 0;
-                    buf.InstructionLength = 2;
-                    return true;
-                }
-                else if ((buf.LoByte & 0xFE) == 0x12)
-                {
-                    buf.InstrucitonKind = PicInstructionKind.RETURN;
-                    buf.RETURN.Fast = (buf.LoByte & 0x1) != 0;
-                    buf.InstructionLength = 2;
-                    return true;
-                }
+                default:
+                    throw new InvalidOperationException();
             }
-            else if ((byte)(buf.HiByte & 0b_1111_1000) == 0b_0000_1000)
+        }
+
+        private static int BraRCallOffset(byte hiByte, byte loByte)
+        {
+            return -1;
+        }
+
+        private static int CallGotoAddr(byte loByte, byte exHi, byte exLo)
+        {
+            return -1;
+        }
+
+        public int DecodeAt(int offset)
+        {
+            if (data.Length < offset + 2)
+                return 0;
+
+            byte hiByte = data[offset + 1];
+            byte loByte = data[offset];
+
+            switch (hiByte)
             {
-                // 0 0 0 0  1 opcode:3 | literal:8
-                buf.InstrucitonKind = PicInstructionKind.Literal;
-                buf.LiteralInstruction.OpCode = (PicLiteralInstruction.LiteralOp)(buf.HiByte & 0b_0000_0111);
-                buf.LiteralInstruction.Literal = buf.LoByte;
+                // Miscellaneous instructions
+                // 0b_0000_0000 opcode
 
-                buf.InstructionLength = 2;
-                return true;
-            }
-            else if ((byte)(buf.HiByte & 0b_1111_0000) == 0b_0110_0000)
-            {
-                // (ALU operations, do not write to W)
-                // 0 1 1 0 opcode:3 a | f:8
-                buf.InstrucitonKind = PicInstructionKind.Alu2;
-                buf.AluInstruction2.OpCode = (PicAluInstruction2.Alu2Op)(buf.HiByte & 0b_0000_1110);
-                buf.AluInstruction2.FileReg = buf.LoByte;
+                case 0b_0000_0000:
+                    switch (loByte)
+                    {
+                        case 0b_0000_0000: p.NOP(); return 2;
+                        //case 0b_0000_0011: p.SLEEP(); return 2;
+                        case 0b_0000_0100: p.CLRWDT(); return 2;
+                        //case 0b_0000_0101: p.PUSH(); return 2;
+                        //case 0b_0000_0110: p.POP(); return 2;
+                        //case 0b_0000_0111: p.DAW(); return 2;
 
-                buf.InstructionLength = 2;
-                return true;
-            }
-            else if ((byte)(buf.HiByte & 0b_1000_0000) == 0b_0000_0000)
-            {
-                // 0 opcode:5 d a | f:8
-                buf.InstrucitonKind = PicInstructionKind.Alu;
-                buf.AluInstruction.OpCode = (PicAluInstruction.AluOp)(buf.HiByte & 0b_0111_1100);
-                buf.AluInstruction.FileReg = buf.LoByte;
+                        default: p.Unknown(hiByte, loByte); return 2;
+                    }
 
-                buf.InstructionLength = 2;
-                return true;
-            }
-            else if ((byte)(buf.HiByte & 0b_1111_0000) == 0b_1101_0000)
-            {
-                if ((buf.HiByte & 0b_0000_1000) != 0)
-                {
-                    buf.InstrucitonKind = PicInstructionKind.RCALL;
-                    buf.RCall.Init(buf.HiByte, buf.LoByte);
-                }
-                else
-                {
-                    buf.InstrucitonKind = PicInstructionKind.BRA;
-                    buf.Bra.Init(buf.HiByte, buf.LoByte);
-                }
+                // Literal operations: W ← OP(k,W)
+                // 0b_0000_1ooo k
 
-                buf.InstructionLength = 2;
-                return true;
-            }
-            else if ((byte)(buf.HiByte & 0b_1111_1000) == 0b_1110_0000)
-            {
-                buf.InstrucitonKind = PicInstructionKind.ConditionalBranch;
-                buf.ConditionalBranch.OpCode = (PicConditionalBranchInstruction.BranchOp)(buf.HiByte & 0b_0000_0111);
-                buf.ConditionalBranch.Offset = buf.LoByte;
-                if ((buf.LoByte & 0x80) != 0)
-                    buf.ConditionalBranch.Offset |= unchecked((int)0xFFFFFF00);
-                buf.ConditionalBranch.Offset <<= 1;
+                //case 0b_0000_1000: p.SUBLW(loByte); return 2;
+                //case 0b_0000_1001: p.IORLW(loByte); return 2;
+                //case 0b_0000_1010: p.XORLW(loByte); return 2;
+                //case 0b_0000_1011: p.ANDLW(loByte); return 2;
+                //case 0b_0000_1100: p.RETLW(loByte); return 2;
+                //case 0b_0000_1101: p.MULLW(loByte); return 2;
+                case 0b_0000_1110: p.MOVLW(loByte); return 2;
+                //case 0b_0000_1111: p.ADDLW(loByte); return 2;
 
-                buf.InstructionLength = 2;
-                return true;
-            }
-            else if ((byte)(buf.HiByte & 0b_1111_0000) == 0b_1100_0000)
-            {
-                if (offset + 4 > data.Length)
-                    return false;
+                // register ALU operations: dest ← OP(f,W)
+                // 0b_0ooo_ooda 
+                //case 0b_0000_0010: // no MULWF with d = 0
+                //case 0b_0000_0011: p.MULWF(loByte, Access(hiByte)); return 2;
+                //case 0b_0000_0100:
+                //case 0b_0000_0101:
+                //case 0b_0000_0110:
+                //case 0b_0000_0111: p.DECF(loByte, Destination(hiByte), Access(hiByte)); return 2;
+                //case 0b_0001_0000:
+                //case 0b_0001_0001:
+                //case 0b_0001_0010:
+                //case 0b_0001_0011: p.IORWF(loByte, Destination(hiByte), Access(hiByte)); return 2;
+                //case 0b_0001_0100:
+                //case 0b_0001_0101:
+                //case 0b_0001_0110:
+                //case 0b_0001_0111: p.ANDWF(loByte, Destination(hiByte), Access(hiByte)); return 2;
+                //case 0b_0001_1000:
+                //case 0b_0001_1001:
+                //case 0b_0001_1010:
+                //case 0b_0001_1011: p.XORWF(loByte, Destination(hiByte), Access(hiByte)); return 2;
+                //case 0b_0001_1100:
+                //case 0b_0001_1101:
+                //case 0b_0001_1110:
+                //case 0b_0001_1111: p.COMF(loByte, Destination(hiByte), Access(hiByte)); return 2;
+                //case 0b_0010_0000:
+                //case 0b_0010_0001:
+                //case 0b_0010_0010:
+                //case 0b_0010_0011: p.ADDWFC(loByte, Destination(hiByte), Access(hiByte)); return 2;
+                //case 0b_0010_0100:
+                //case 0b_0010_0101:
+                //case 0b_0010_0110:
+                //case 0b_0010_0111: p.ADDWF(loByte, Destination(hiByte), Access(hiByte)); return 2;
+                //case 0b_0010_1000:
+                //case 0b_0010_1001:
+                //case 0b_0010_1010:
+                //case 0b_0010_1011: p.INCF(loByte, Destination(hiByte), Access(hiByte)); return 2;
+                //case 0b_0010_1100:
+                //case 0b_0010_1101:
+                //case 0b_0010_1110:
+                //case 0b_0010_1111: p.DECFSZ(loByte, Destination(hiByte), Access(hiByte)); return 2;
+                //case 0b_0011_0000:
+                //case 0b_0011_0001:
+                //case 0b_0011_0010:
+                //case 0b_0011_0011: p.RRCF(loByte, Destination(hiByte), Access(hiByte)); return 2;
+                //case 0b_0011_0100:
+                //case 0b_0011_0101:
+                //case 0b_0011_0110:
+                //case 0b_0011_0111: p.RLCF(loByte, Destination(hiByte), Access(hiByte)); return 2;
+                //case 0b_0011_1000:
+                //case 0b_0011_1001:
+                //case 0b_0011_1010:
+                //case 0b_0011_1011: p.SWAPF(loByte, Destination(hiByte), Access(hiByte)); return 2;
+                //case 0b_0011_1100:
+                //case 0b_0011_1101:
+                //case 0b_0011_1110:
+                //case 0b_0011_1111: p.INCFSZ(loByte, Destination(hiByte), Access(hiByte)); return 2;
+                //case 0b_0100_0000:
+                //case 0b_0100_0001:
+                //case 0b_0100_0010:
+                //case 0b_0100_0011: p.RRNCF(loByte, Destination(hiByte), Access(hiByte)); return 2;
+                //case 0b_0100_0100:
+                //case 0b_0100_0101:
+                //case 0b_0100_0110:
+                //case 0b_0100_0111: p.RLNCF(loByte, Destination(hiByte), Access(hiByte)); return 2;
+                //case 0b_0100_1000:
+                //case 0b_0100_1001:
+                //case 0b_0100_1010:
+                //case 0b_0100_1011: p.INFSNZ(loByte, Destination(hiByte), Access(hiByte)); return 2;
+                //case 0b_0100_1100:
+                //case 0b_0100_1101:
+                //case 0b_0100_1110:
+                //case 0b_0100_1111: p.DCFSNZ(loByte, Destination(hiByte), Access(hiByte)); return 2;
+                case 0b_0101_0000:
+                case 0b_0101_0001:
+                case 0b_0101_0010:
+                case 0b_0101_0011: p.MOVF(loByte, Destination(hiByte), Access(hiByte)); return 2;
+                //case 0b_0101_0100:
+                //case 0b_0101_0101:
+                //case 0b_0101_0110:
+                //case 0b_0101_0111: p.SUBFWB(loByte, Destination(hiByte), Access(hiByte)); return 2;
+                //case 0b_0101_1000:
+                //case 0b_0101_1001:
+                //case 0b_0101_1010:
+                //case 0b_0101_1011: p.SUBWFB(loByte, Destination(hiByte), Access(hiByte)); return 2;
+                //case 0b_0101_1100:
+                //case 0b_0101_1101:
+                //case 0b_0101_1110:
+                //case 0b_0101_1111: p.SUBWF(loByte, Destination(hiByte), Access(hiByte)); return 2;
 
-                buf.InstrucitonKind = PicInstructionKind.MOVFF;
-                buf.MOVFF.Init(buf.HiByte, buf.LoByte, data[offset + 3], data[offset + 2]);
-                buf.InstructionLength = 4;
-                return true;
-            }
-            else if (buf.HiByte == 0b_1110_1111)
-            {
-                if (offset + 4 > data.Length)
-                    return false;
+                // register ALU operations, do not write to W
+                // 0b_0110_oooa f
+                //case 0b_0110_0000:
+                //case 0b_0110_0001: p.CPFSLT(loByte, Access(hiByte)); return 2;
+                case 0b_0110_0010:
+                case 0b_0110_0011: p.CPFSEQ(loByte, Access(hiByte)); return 2;
+                //case 0b_0110_0100:
+                //case 0b_0110_0101: p.CPFSGT(loByte, Access(hiByte)); return 2;
+                //case 0b_0110_0110:
+                //case 0b_0110_0111: p.TSTFSZ(loByte, Access(hiByte)); return 2;
+                //case 0b_0110_1000:
+                //case 0b_0110_1001: p.SETF(loByte, Access(hiByte)); return 2;
+                //case 0b_0110_1010:
+                //case 0b_0110_1011: p.CLRF(loByte, Access(hiByte)); return 2;
+                //case 0b_0110_1100:
+                //case 0b_0110_1101: p.NEGF(loByte, Access(hiByte)); return 2;
+                case 0b_0110_1110:
+                case 0b_0110_1111: p.MOVWF(loByte, Access(hiByte)); return 2;
 
-                buf.InstrucitonKind = PicInstructionKind.GOTO;
-                buf.GOTO.Init(buf.LoByte, data[offset + 3], data[offset + 2]);
-                buf.InstructionLength = 4;
-                return true;
-            }
-            else if (buf.HiByte == 0b_1110_1110 &&
-                     (byte)(buf.LoByte & 0b_1100_0000) == 0b_0000_0000)
-            {
-                if (offset + 4 > data.Length)
-                    return false;
+                // BRA n
+                // 0b_1101_0nnn
+                case 0b_1101_0000:
+                case 0b_1101_0001:
+                case 0b_1101_0010:
+                case 0b_1101_0011:
+                case 0b_1101_0100:
+                case 0b_1101_0101:
+                case 0b_1101_0110:
+                case 0b_1101_0111: p.BRA(BraRCallOffset(hiByte, loByte)); return 2;
 
-                buf.InstrucitonKind = PicInstructionKind.LFSR;
-                buf.LFSR.LfsrN = (buf.LoByte >> 4) & 3;
-                buf.LFSR.Literal = data[offset + 2] | (uint)((buf.LoByte & 0xf) << 8);
-                buf.InstructionLength = 4;
-                return true;
-            }
-            else if ((byte)(buf.HiByte & 0b_1100_0000) == 0b_1000_0000)
-            {
-                buf.InstrucitonKind = PicInstructionKind.BitInstruction;
-                buf.BitInstruction.OpCode = ((PicBitInstruction.BitOp)(buf.HiByte & 0b_0011_0000));
-                buf.InstructionLength = 2;
-                return true;
-            }
-            else if (buf.HiByte == 0b_1110_1100)
-            {
-                if (offset + 4 > data.Length)
-                    return false;
+                // GOTO k
+                case 0b_1110_1111:
+                    {
+                        if (data.Length < offset + 4)
+                            return 0;
+                        byte exHi = data[offset + 3];
+                        byte exLo = data[offset + 2];
+                        p.GOTO(CallGotoAddr(loByte, exHi, exLo));
+                        return 4;
+                    }
 
-                buf.InstrucitonKind = PicInstructionKind.CALL;
-                buf.CALL.Init(buf.LoByte, data[offset + 3], data[offset + 2]);
-                buf.InstructionLength = 4;
-                return true;
+                default: p.Unknown(hiByte, loByte); return 2;
             }
-            else if ((byte)(buf.HiByte & 0b_1111_0000) == 0b_1111_0000)
-            {
-                buf.InstrucitonKind = PicInstructionKind.NOPEx;
-                buf.InstructionLength = 2;
-                return true;
-            }
-
-            buf.InstrucitonKind = PicInstructionKind.Unknown;
-            buf.InstructionLength = 2;
-            return true;
         }
     }
 }
