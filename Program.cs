@@ -113,7 +113,7 @@ namespace picdasm
         {
             if (access == AccessMode.Access)
             {
-                int absAddr = (addr + 0x0f60) & 0xfff;
+                int absAddr = (addr - 96 + 0x0f60) & 0xfff;
 
                 string sfrName = Pic18Sfr.LookupSfr(absAddr);
 
