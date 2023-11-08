@@ -48,6 +48,7 @@
     <Compile Include="IntelHexRecordDumper.cs" />
     <Compile Include="IntelHexRecordParser.cs" />
     <Compile Include="IntelHexRecordBuf.cs" />
+    <Compile Include="Pic18Sfr.cs" />
     <Compile Include="PicInstructionDecoder.cs" />
     <Compile Include="PicProgMemImage.cs" />
     <Compile Include="Program.cs" />

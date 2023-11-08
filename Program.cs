@@ -32,11 +32,22 @@ namespace picdasm
         {
             if (access == AccessMode.Access)
             {
-                return string.Format("ACCESS_BANK(0x{0:X2})", addr);
+                int absAddr = (addr + 0x0f60) & 0xfff;
+
+                string sfrName = Pic18Sfr.LookupSfr(absAddr);
+
+                if (sfrName != null)
+                {
+                    return sfrName;
+                }
+                else
+                {
+                    return string.Format("Mem[0x{0:X3}]", addr);
+                }
             }
             else
             {
-                return string.Format("CURRENT_BANK(0x{0:X2})", addr);
+                return string.Format("Mem[BSR << 4 | 0x{0:X2}]", addr);
             }
         }
 
