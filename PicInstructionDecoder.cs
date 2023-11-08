@@ -68,7 +68,7 @@ namespace picdasm
         //void SUBWF(byte addr, DestinationMode dest, AccessMode access);
 
         // register ALU operations, do not write to W
-        //void CPFSLT(byte addr, AccessMode mode);
+        void CPFSLT(byte addr, AccessMode mode);
         void CPFSEQ(byte addr, AccessMode mode);
         //void CPFSGT(byte addr, AccessMode mode);
         //void TSTFSZ(byte addr, AccessMode mode);
@@ -294,8 +294,8 @@ namespace picdasm
 
                 // register ALU operations, do not write to W
                 // 0b_0110_oooa f
-                //case 0b_0110_0000:
-                //case 0b_0110_0001: p.CPFSLT(loByte, Access(hiByte)); return 2;
+                case 0b_0110_0000:
+                case 0b_0110_0001: p.CPFSLT(loByte, Access(hiByte)); return 2;
                 case 0b_0110_0010:
                 case 0b_0110_0011: p.CPFSEQ(loByte, Access(hiByte)); return 2;
                 //case 0b_0110_0100:

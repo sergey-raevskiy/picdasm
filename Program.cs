@@ -102,7 +102,7 @@ namespace picdasm
 
         public void CPFSEQ(byte addr, AccessMode mode)
         {
-            o.WriteLine("if (!(W == {0}))", ResolveAddr(addr, mode));
+            o.WriteLine("if ({0} != W)", ResolveAddr(addr, mode));
         }
 
         public void MOVWF(byte addr, AccessMode mode)
@@ -128,6 +128,11 @@ namespace picdasm
         public void Unknown(byte hiByte, byte loByte)
         {
             throw new NotImplementedException(string.Format("Unknown instruciton {0:X2}{1:X2}", hiByte, loByte));
+        }
+
+        public void CPFSLT(byte addr, AccessMode mode)
+        {
+            o.WriteLine("if ({0} >= W)", ResolveAddr(addr, mode));
         }
     }
 
