@@ -5,9 +5,28 @@ using System.IO;
 
 namespace picdasm
 {
-    internal class InstructionWriter : IPicInstructionProcessor
+    class Context : IPicInstructionFetcher
+    {
+        private byte[] progmem;
+        public int PC { get; set; }
+
+        public Context(byte[] progmem)
+        {
+            this.progmem = progmem;
+        }
+
+        public void FetchInstruciton(out byte hi, out byte lo)
+        {
+            hi = progmem[PC + 1];
+            lo = progmem[PC];
+            PC += 2;
+        }
+    }
+
+    internal class InstructionWriter : IPicInstructionExecutor
     {
         private readonly TextWriter o;
+        private readonly Context c;
 
         private string ResolveAddr(byte addr, AccessMode access)
         {
@@ -21,9 +40,10 @@ namespace picdasm
             }
         }
 
-        public InstructionWriter(TextWriter o)
+        public InstructionWriter(TextWriter o, Context c)
         {
             this.o = o;
+            this.c = c;
         }
 
         public void NOP()
@@ -552,20 +572,22 @@ namespace picdasm
         }
     }
 
+    interface IPicInstructionFetcher
+    {
+        void FetchInstruciton(out byte hi, out byte lo);
+    }
+
     internal class Program
     {
         private static void Disasm(byte[] prog)
         {
-            var dec = new PicInstructionDecoder(prog, new InstructionWriter(Console.Out));
-            int pc = 0;
+            var ctx = new Context(prog);
 
-            while (true)
+            var dec = new PicInstructionDecoder(ctx, new InstructionWriter(Console.Out, ctx));
+
+            while (ctx.PC < prog.Length)
             {
-                int len = dec.DecodeAt(pc);
-                if (len == 0)
-                    break;
-
-                pc+= len;
+                dec.DecodeAt();
             }
         }
 
