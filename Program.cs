@@ -27,6 +27,7 @@ namespace picdasm
     {
         private readonly TextWriter o;
         int indent = 0;
+        bool prespace;
 
         public Writer(TextWriter o)
         {
@@ -38,8 +39,19 @@ namespace picdasm
             indent = 1;
         }
 
+        public void PreSpace()
+        {
+            prespace = true;
+        }
+
         public void WriteLine(string f, params object[] args)
         {
+            if (prespace)
+            {
+                o.WriteLine();
+                prespace = false;
+            }
+
             o.Write("    ");
             if (indent != 0)
                 o.Write("    ");
@@ -116,7 +128,7 @@ namespace picdasm
 
         public void MOVLW(byte literal)
         {
-            //o.WriteLine();
+            o.PreSpace();
             o.WriteLine("W = 0x{0:X2};", literal);
         }
 
@@ -124,7 +136,7 @@ namespace picdasm
         {
             if (dest == DestinationMode.W)
             {
-                //o.WriteLine();
+                o.PreSpace();
                 o.WriteLine("W = {0};", ResolveAddr(addr, access));
             }
             else
@@ -193,7 +205,7 @@ namespace picdasm
         public void BRA(int off)
         {
             o.WriteLine("goto {0};", off);
-            //o.WriteLine();
+            o.PreSpace();
         }
 
         public void RCALL(int off)
@@ -244,12 +256,12 @@ namespace picdasm
         public void GOTO(int offset)
         {
             o.WriteLine("goto {0};", offset);
-            //o.WriteLine();
+            o.PreSpace();
         }
 
         public void LFSR(int f, int k)
         {
-            //o.WriteLine();
+            o.PreSpace();
             o.WriteLine("LFSR{0} = 0x{1:X2};", f, k);
         }
 
@@ -294,7 +306,6 @@ namespace picdasm
         {
             if (dest == DestinationMode.W)
             {
-                //o.WriteLine();
                 o.WriteLine("W ^= {0};", ResolveAddr(addr, access));
             }
             else
@@ -307,7 +318,7 @@ namespace picdasm
         {
             if (dest == DestinationMode.W)
             {
-                //o.WriteLine();
+                o.PreSpace();
                 o.WriteLine("W = {0} + 1;", ResolveAddr(addr, access));
             }
             else
@@ -376,6 +387,7 @@ namespace picdasm
         {
             if (dest == DestinationMode.W)
             {
+                o.PreSpace();
                 o.WriteLine("W = {0} - W;", ResolveAddr(addr, access));
             }
             else
@@ -425,7 +437,7 @@ namespace picdasm
         public void RETLW(byte literal)
         {
             o.WriteLine("_return_(RETLW(0x{0:X2}));", literal);
-            //o.WriteLine();
+            o.PreSpace();
         }
 
         public void MULLW(byte literal)
@@ -447,7 +459,7 @@ namespace picdasm
         {
             if (dest == DestinationMode.W)
             {
-                //o.WriteLine();
+                o.PreSpace();
                 o.WriteLine("W = {0} - 1;", ResolveAddr(addr, access));
             }
             else
@@ -459,7 +471,7 @@ namespace picdasm
         public void RETURN(CallReturnOpMode mode)
         {
             o.WriteLine("return;");
-            //o.WriteLine();
+            o.PreSpace();
         }
 
         public void TBLWT(TableOpMode mode)
