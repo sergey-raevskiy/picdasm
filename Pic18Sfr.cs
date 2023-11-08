@@ -32,7 +32,7 @@ namespace picdasm
             }
         }
 
-        static Pic18Sfr()
+        static void Regs()
         {
             Reg(0xF54, "PADCFG1");
             Reg(0xF55, "CTMUICON");
@@ -208,7 +208,10 @@ namespace picdasm
             Reg(0xFFD, "TOSL");
             Reg(0xFFE, "TOSH");
             Reg(0xFFF, "TOSU");
+        }
 
+        static void Bits()
+        {
             Bit((0xF7E * 8 + 0), "ABDEN");
             Bit((0xF7E * 8 + 0), "ABDEN1");
             Bit((0xF7E * 8 + 7), "ABDOVF");
@@ -1525,6 +1528,12 @@ namespace picdasm
             Bit((0xFAC * 8 + 6), "nTX8");
             Bit((0xFC7 * 8 + 2), "nW");
             Bit((0xFC7 * 8 + 2), "nWRITE");
+        }
+
+        static Pic18Sfr()
+        {
+            Regs();
+            Bits();
         }
 
         public static string LookupBit(int bit)
