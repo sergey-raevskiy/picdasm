@@ -119,7 +119,7 @@ namespace picdasm
             }
             else
             {
-                return string.Format("Mem[0x{0:X3}]", addr);
+                return string.Format("var_0x{0:X3}", addr);
             }
         }
 
@@ -377,10 +377,133 @@ namespace picdasm
             o.WriteLine("LFSR{0} = 0x{1:X2};", f, k);
         }
 
+        HashSet<string> unks = new HashSet<string>()
+        {
+            "0001",
+"0002",
+"0017",
+"0018",
+"0019",
+"001A",
+"001B",
+"001C",
+"001D",
+"001E",
+"001F",
+"0020",
+"0021",
+"0022",
+"0023",
+"0024",
+"0025",
+"0026",
+"0027",
+"0028",
+"0029",
+"002A",
+"002B",
+"002C",
+"002D",
+"002E",
+"002F",
+"0030",
+"0031",
+"0032",
+"0033",
+"0034",
+"0035",
+"0038",
+"0039",
+"003B",
+"003C",
+"003D",
+"003E",
+"003F",
+"0040",
+"0041",
+"0042",
+"0043",
+"0044",
+"0047",
+"0048",
+"004A",
+"0050",
+"0051",
+"0052",
+"0055",
+"0056",
+"0058",
+"0059",
+"005A",
+"005B",
+"005C",
+"005D",
+"005E",
+"005F",
+"0060",
+"0061",
+"0062",
+"0063",
+"0064",
+"0065",
+"0066",
+"0067",
+"0068",
+"0069",
+"006B",
+"006C",
+"006F",
+"0072",
+"0075",
+"0078",
+"0079",
+"007C",
+"007D",
+"0080",
+"0081",
+"0082",
+"0088",
+"0090",
+"0092",
+"0094",
+"0097",
+"009C",
+"009F",
+"00A1",
+"00A5",
+"00AC",
+"00AD",
+"00BA",
+"00BB",
+"00C0",
+"00C6",
+"00CE",
+"00CF",
+"00D0",
+"00D1",
+"00D2",
+"00D9",
+"00DA",
+"00DE",
+"00DF",
+"00E0",
+"00E1",
+"00E8",
+"00EB",
+        };
+
         public void Unknown(byte hiByte, byte loByte)
         {
+            string kk = string.Format("{0:X2}{1:X2}", hiByte, loByte);
             o.WriteLine("_unk(0x{0:X2}{1:X2});", hiByte, loByte);
-            //throw new NotImplementedException();
+
+            if (!unks.Contains(kk))
+                throw new NotImplementedException(kk);
+        }
+
+        public void CALLW()
+        {
+            o.WriteLine("_callw_();");
         }
 
         public void NOPEX(byte hiByte, byte loByte)
@@ -747,6 +870,16 @@ namespace picdasm
         public void RETFIE(CallReturnOpMode mode)
         {
             o.WriteLine("_return_(RETFIE);");
+        }
+
+        public void NEGF(byte addr, AccessMode access)
+        {
+            o.WriteLine("{0} = -{0};", ResolveAddr(addr, access));
+        }
+
+        public void SLEEP()
+        {
+            o.WriteLine("_sleep_();");
         }
     }
 

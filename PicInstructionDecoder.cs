@@ -32,7 +32,7 @@ namespace picdasm
     {
         // Miscellaneous instructions
         void NOP();
-        //void SLEEP();
+        void SLEEP();
         void CLRWDT();
         //void PUSH();
         void POP();
@@ -43,6 +43,8 @@ namespace picdasm
 
         void RETFIE(CallReturnOpMode mode);
         void RETURN(CallReturnOpMode mode);
+
+        void CALLW();
 
         void RESET();
 
@@ -89,7 +91,7 @@ namespace picdasm
         void TSTFSZ(byte addr, AccessMode access);
         void SETF(byte addr, AccessMode access);
         void CLRF(byte addr, AccessMode access);
-        //void NEGF(byte addr, AccessMode access);
+        void NEGF(byte addr, AccessMode access);
         void MOVWF(byte addr, AccessMode access);
 
         // Toggle bit b of f
@@ -246,7 +248,7 @@ namespace picdasm
                     switch (loByte)
                     {
                         case 0b_0000_0000: e.NOP(); return 2;
-                        //case 0b_0000_0011: p.SLEEP(); return 2;
+                        case 0b_0000_0011: e.SLEEP(); return 2;
                         case 0b_0000_0100: e.CLRWDT(); return 2;
                         //case 0b_0000_0101: p.PUSH(); return 2;
                         case 0b_0000_0110: e.POP(); return 2;
@@ -266,15 +268,32 @@ namespace picdasm
                         case 0b_0001_0010:
                         case 0b_0001_0011: e.RETURN(CallReturnMode(loByte)); return 2;
 
-                        case 0b_1111_1111: e.RESET(); return 2;
+                        case 0b_0001_0100: e.CALLW(); return 2;
+
+                        case 0b_1111_0000:
+                        case 0b_1111_0001:
+                        case 0b_1111_0011:
+                        case 0b_1111_0010:
+                        case 0b_1111_0100:
+                        case 0b_1111_0101:
+                        case 0b_1111_0111:
+                        case 0b_1111_0110:
+                        case 0b_1111_1000:
+                        case 0b_1111_1001:
+                        case 0b_1111_1011:
+                        case 0b_1111_1010:
+                        case 0b_1111_1100:
+                        case 0b_1111_1101:
+                        case 0b_1111_1111:
+                        case 0b_1111_1110: e.RESET(); return 2;
 
                         default: goto unknown;
                     }
 
                 // MOVLB
                 case 0b_0000_0001:
-                    if ((loByte & 0xf0) != 0)
-                        goto unknown;
+                    //if ((loByte & 0xf0) != 0)
+                    //    goto unknown;
                     e.MOVLB(loByte & 0x0f);
                     return 2;
 
@@ -393,8 +412,8 @@ namespace picdasm
                 case 0b_0110_1001: e.SETF(loByte, Access(hiByte)); return 2;
                 case 0b_0110_1010:
                 case 0b_0110_1011: e.CLRF(loByte, Access(hiByte)); return 2;
-                //case 0b_0110_1100:
-                //case 0b_0110_1101: p.NEGF(loByte, Access(hiByte)); return 2;
+                case 0b_0110_1100:
+                case 0b_0110_1101: e.NEGF(loByte, Access(hiByte)); return 2;
                 case 0b_0110_1110:
                 case 0b_0110_1111: e.MOVWF(loByte, Access(hiByte)); return 2;
 
