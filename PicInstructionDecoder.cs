@@ -184,7 +184,7 @@ namespace picdasm
 
         private static int BraRCallOffset(byte hiByte, byte loByte)
         {
-            return -1;
+            return loByte | (hiByte & 7) | ((hiByte & 4) !=0 ? unchecked((int)0xFFFFF800) : 0);
         }
 
         private static int CallGotoAddr(byte loByte, byte exHi, byte exLo)

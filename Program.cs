@@ -25,13 +25,30 @@ namespace picdasm
 
     class Writer
     {
-        private readonly TextWriter o;
+        public int PC { get; set; }
+
         int indent = 0;
         bool prespace;
 
-        public Writer(TextWriter o)
+        private HashSet<int> calls = new HashSet<int>();
+        private HashSet<int> gotos = new HashSet<int>();
+
+        class Line
         {
-            this.o = o;
+            public int addr;
+            public string text;
+        }
+
+        private List<Line> lines = new List<Line>();
+
+        public void RefCall(int addr)
+        {
+            calls.Add(addr);
+        }
+
+        public void RefGoto(int addr)
+        {
+            gotos.Add(addr);
         }
 
         public void IncIndent()
@@ -48,16 +65,42 @@ namespace picdasm
         {
             if (prespace)
             {
-                o.WriteLine();
+                lines.Add(new Line { addr = -1, text = "" });
                 prespace = false;
             }
 
-            o.Write("    ");
+            string text = "    ";
             if (indent != 0)
-                o.Write("    ");
+            {
+                text += "    ";
+                indent = 0;
+            }
 
-            indent = 0;
-            o.WriteLine(f, args);
+            text += string.Format(f, args);
+            lines.Add(new Line { addr = PC, text = text });
+        }
+
+        public void Dump(TextWriter w)
+        {
+            foreach (var line in lines)
+            {
+                bool sk = false;
+                if (calls.Contains(line.addr))
+                {
+                    w.WriteLine();
+                    sk = true;
+                    w.WriteLine("case 0x{0:X5}:", line.addr);
+                }
+
+                if (gotos.Contains(line.addr))
+                {
+                    if (!sk)
+                        w.WriteLine();
+                    w.WriteLine("_0x{0:X5}:", line.addr);
+                }
+
+                w.WriteLine(line.text);
+            }
         }
     }
 
@@ -89,10 +132,27 @@ namespace picdasm
             }
         }
 
-        public InstructionWriter(TextWriter o, Context c)
+        public InstructionWriter(Context c)
         {
-            this.o = new Writer(o);
+            this.o = new Writer();
             this.c = c;
+
+            o.RefCall(0);
+        }
+
+        public void SetPc(int pc)
+        {
+            o.PC = pc;
+        }
+
+        public void Dump(TextWriter w)
+        {
+            w.WriteLine("void _FUNC_(int _pfn)");
+            w.WriteLine("{");
+            w.WriteLine("switch (_pfn) {");
+            o.Dump(w);
+            w.WriteLine("} /* switch (_pfn) { */");
+            w.WriteLine("}");
         }
 
         public void NOP()
@@ -204,13 +264,16 @@ namespace picdasm
 
         public void BRA(int off)
         {
-            o.WriteLine("goto {0};", off);
-            o.PreSpace();
+            int addr = c.PC + 2 * off;
+            o.WriteLine("goto _0x{0:X5};", addr);
+            o.RefGoto(addr);
         }
 
         public void RCALL(int off)
         {
-            o.WriteLine("({0})();", off);
+            int addr = c.PC + 2*off;
+            o.WriteLine("_FUNC_(0x{0:X5});", addr);
+            o.RefCall(addr);
         }
 
         public void BZ(int off)
@@ -646,12 +709,16 @@ namespace picdasm
         {
             var ctx = new Context(prog);
 
-            var dec = new PicInstructionDecoder(ctx, new InstructionWriter(Console.Out, ctx));
+            var qq = new InstructionWriter(ctx);
+            var dec = new PicInstructionDecoder(ctx, qq);
 
             while (ctx.PC < prog.Length)
             {
+                qq.SetPc(ctx.PC);
                 dec.DecodeAt();
             }
+
+            qq.Dump(Console.Out);
         }
 
         private static void Run(string[] args)
