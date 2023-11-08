@@ -197,12 +197,12 @@ namespace picdasm
 
         private int MovffSource(byte hiByte, byte loByte)
         {
-            return -1;
+            return ((hiByte & 0xf) << 8) | loByte;
         }
 
         private int MovffDest(byte exHi, byte exLo)
         {
-            return -1;
+            return ((exHi & 0xf) << 8) | exLo;
         }
 
         private int ConditionalOffset(byte loByte)
