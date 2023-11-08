@@ -23,9 +23,35 @@ namespace picdasm
         }
     }
 
-    internal class InstructionWriter : IPicInstructionExecutor
+    class Writer
     {
         private readonly TextWriter o;
+        int indent = 0;
+
+        public Writer(TextWriter o)
+        {
+            this.o = o;
+        }
+
+        public void IncIndent()
+        {
+            indent = 1;
+        }
+
+        public void WriteLine(string f, params object[] args)
+        {
+            o.Write("    ");
+            if (indent != 0)
+                o.Write("    ");
+
+            indent = 0;
+            o.WriteLine(f, args);
+        }
+    }
+
+    internal class InstructionWriter : IPicInstructionExecutor
+    {
+        private readonly Writer o;
         private readonly Context c;
 
         private string ResolveAddr(byte addr, AccessMode access)
@@ -53,7 +79,7 @@ namespace picdasm
 
         public InstructionWriter(TextWriter o, Context c)
         {
-            this.o = o;
+            this.o = new Writer(o);
             this.c = c;
         }
 
@@ -90,7 +116,7 @@ namespace picdasm
 
         public void MOVLW(byte literal)
         {
-            o.WriteLine();
+            //o.WriteLine();
             o.WriteLine("W = 0x{0:X2};", literal);
         }
 
@@ -98,7 +124,7 @@ namespace picdasm
         {
             if (dest == DestinationMode.W)
             {
-                o.WriteLine();
+                //o.WriteLine();
                 o.WriteLine("W = {0};", ResolveAddr(addr, access));
             }
             else
@@ -146,6 +172,7 @@ namespace picdasm
         public void CPFSEQ(byte addr, AccessMode access)
         {
             o.WriteLine("if ({0} != W)", ResolveAddr(addr, access));
+            o.IncIndent();
         }
 
         public void CLRF(byte addr, AccessMode access)
@@ -166,7 +193,7 @@ namespace picdasm
         public void BRA(int off)
         {
             o.WriteLine("goto {0};", off);
-            o.WriteLine();
+            //o.WriteLine();
         }
 
         public void RCALL(int off)
@@ -217,12 +244,12 @@ namespace picdasm
         public void GOTO(int offset)
         {
             o.WriteLine("goto {0};", offset);
-            o.WriteLine();
+            //o.WriteLine();
         }
 
         public void LFSR(int f, int k)
         {
-            o.WriteLine();
+            //o.WriteLine();
             o.WriteLine("LFSR{0} = 0x{1:X2};", f, k);
         }
 
@@ -240,6 +267,7 @@ namespace picdasm
         public void CPFSLT(byte addr, AccessMode access)
         {
             o.WriteLine("if ({0} >= W)", ResolveAddr(addr, access));
+            o.IncIndent();
         }
 
         public void BTG(byte addr, int bit, AccessMode access)
@@ -266,7 +294,7 @@ namespace picdasm
         {
             if (dest == DestinationMode.W)
             {
-                o.WriteLine();
+                //o.WriteLine();
                 o.WriteLine("W ^= {0};", ResolveAddr(addr, access));
             }
             else
@@ -279,7 +307,7 @@ namespace picdasm
         {
             if (dest == DestinationMode.W)
             {
-                o.WriteLine();
+                //o.WriteLine();
                 o.WriteLine("W = {0} + 1;", ResolveAddr(addr, access));
             }
             else
@@ -298,6 +326,8 @@ namespace picdasm
             {
                 o.WriteLine("if (++{0} == 0)", ResolveAddr(addr, access));
             }
+
+            o.IncIndent();
         }
 
         public void DECFSZ(byte addr, DestinationMode dest, AccessMode access)
@@ -310,6 +340,8 @@ namespace picdasm
             {
                 o.WriteLine("if (--{0} != 0)", ResolveAddr(addr, access));
             }
+
+            o.IncIndent();
         }
 
         public void RESET()
@@ -320,16 +352,19 @@ namespace picdasm
         public void BTFSS(byte addr, int bit, AccessMode access)
         {
             o.WriteLine("if (!({0} & (1 << {1})))", ResolveAddr(addr, access), bit);
+            o.IncIndent();
         }
 
         public void BTFSC(byte addr, int bit, AccessMode access)
         {
             o.WriteLine("if ({0} & (1 << {1}))", ResolveAddr(addr, access), bit);
+            o.IncIndent();
         }
 
         public void TSTFSZ(byte addr, AccessMode access)
         {
             o.WriteLine("if ({0})", ResolveAddr(addr, access));
+            o.IncIndent();
         }
 
         public void XORLW(byte literal)
@@ -352,6 +387,7 @@ namespace picdasm
         public void CPFSGT(byte addr, AccessMode access)
         {
             o.WriteLine("if ({0} <= W)", ResolveAddr(addr, access));
+            o.IncIndent();
         }
 
         public void ANDLW(byte literal)
@@ -389,7 +425,7 @@ namespace picdasm
         public void RETLW(byte literal)
         {
             o.WriteLine("_return_(RETLW(0x{0:X2}));", literal);
-            o.WriteLine();
+            //o.WriteLine();
         }
 
         public void MULLW(byte literal)
@@ -411,7 +447,7 @@ namespace picdasm
         {
             if (dest == DestinationMode.W)
             {
-                o.WriteLine();
+                //o.WriteLine();
                 o.WriteLine("W = {0} - 1;", ResolveAddr(addr, access));
             }
             else
@@ -423,7 +459,7 @@ namespace picdasm
         public void RETURN(CallReturnOpMode mode)
         {
             o.WriteLine("return;");
-            o.WriteLine();
+            //o.WriteLine();
         }
 
         public void TBLWT(TableOpMode mode)
@@ -515,6 +551,8 @@ namespace picdasm
             {
                 o.WriteLine("if (--{0} == 0)", ResolveAddr(addr, access));
             }
+
+            o.IncIndent();
         }
 
         public void RRNCF(byte addr, DestinationMode dest, AccessMode access)
@@ -551,6 +589,8 @@ namespace picdasm
             {
                 o.WriteLine("if (--{0} == 0)", ResolveAddr(addr, access));
             }
+
+            o.IncIndent();
         }
 
         public void SUBFWB(byte addr, DestinationMode dest, AccessMode access)
