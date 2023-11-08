@@ -192,7 +192,7 @@ namespace picdasm
 
         private static int CallGotoAddr(byte loByte, byte exHi, byte exLo)
         {
-            return -1;
+            return ((exHi & 0xf) << 16) | (exLo << 8) | loByte;
         }
 
         private int MovffSource(byte hiByte, byte loByte)
@@ -207,7 +207,8 @@ namespace picdasm
 
         private int ConditionalOffset(byte loByte)
         {
-            return -1;
+            sbyte tmp = (sbyte)loByte;
+            return tmp;
         }
 
         private int BitOpBit(byte hiByte)

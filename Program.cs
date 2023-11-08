@@ -286,48 +286,74 @@ namespace picdasm
 
         public void BZ(int off)
         {
-            o.WriteLine("if (Z) goto {0};", off);
+            int addr = (c.PC + 2 * off);
+            o.WriteLine("if (Z) goto _0x{0:X5};", addr);
+            o.PreSpace();
+            o.RefGoto(addr);
         }
 
         public void BNZ(int off)
         {
-            o.WriteLine("if (!Z) goto {0};", off);
+            int addr = (c.PC + 2 * off);
+            o.WriteLine("if (!Z) goto _0x{0:X5};", addr);
+            o.PreSpace();
+            o.RefGoto(addr);
         }
 
         public void BC(int off)
         {
-            o.WriteLine("if (C) goto {0};", off);
+            int addr = (c.PC + 2 * off);
+            o.WriteLine("if (C) goto _0x{0:X5};", addr);
+            o.PreSpace();
+            o.RefGoto(addr);
         }
 
         public void BNC(int off)
         {
-            o.WriteLine("if (!C) goto {0};", off);
+            int addr = (c.PC + 2 * off);
+            o.WriteLine("if (!C) goto _0x{0:X5};", addr);
+            o.PreSpace();
+            o.RefGoto(addr);
         }
 
         public void BOV(int off)
         {
-            o.WriteLine("if (O) goto {0};", off);
+            int addr = (c.PC + 2 * off);
+            o.WriteLine("if (O) goto _0x{0:X5};", addr);
+            o.PreSpace();
+            o.RefGoto(addr);
         }
 
         public void BNOV(int off)
         {
-            o.WriteLine("if (!O) goto {0};", off);
+            int addr = (c.PC + 2 * off);
+            o.WriteLine("if (!O) goto _0x{0:X5};", addr);
+            o.PreSpace();
+            o.RefGoto(addr);
         }
 
         public void BN(int off)
         {
-            o.WriteLine("if (N) goto {0};", off);
+            int addr = (c.PC + 2 * off);
+            o.WriteLine("if (N) goto _0x{0:X5};", addr);
+            o.PreSpace();
+            o.RefGoto(addr);
         }
 
         public void BNN(int off)
         {
-            o.WriteLine("if (!N) goto {0};", off);
+            int addr = (c.PC + 2 * off);
+            o.WriteLine("if (!N) goto _0x{0:X5};", addr);
+            o.PreSpace();
+            o.RefGoto(addr);
         }
 
-        public void GOTO(int offset)
+        public void GOTO(int addr)
         {
-            o.WriteLine("goto {0};", offset);
+            addr *= 2;
+            o.WriteLine("goto _0x{0:X5};", addr);
             o.PreSpace();
+            o.RefGoto(addr);
         }
 
         public void LFSR(int f, int k)
@@ -492,7 +518,10 @@ namespace picdasm
 
         public void CALL(int addr, CallReturnOpMode mode)
         {
-            o.WriteLine("({0})();", addr);
+            addr *= 2;
+            o.WriteLine("_FUNC_(0x{0:X5});", addr);
+            o.PreSpace();
+            o.RefCall(addr);
         }
 
         public void SUBLW(byte literal)
