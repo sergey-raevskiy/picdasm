@@ -109,22 +109,27 @@ namespace picdasm
         private readonly Writer o;
         private readonly Context c;
 
+        private static string ResolveAbsAddr(int addr)
+        {
+            string sfrName = Pic18Sfr.LookupSfr(addr);
+
+            if (sfrName != null)
+            {
+                return sfrName;
+            }
+            else
+            {
+                return string.Format("Mem[0x{0:X3}]", addr);
+            }
+        }
+
         private string ResolveAddr(byte addr, AccessMode access)
         {
             if (access == AccessMode.Access)
             {
                 int absAddr = (addr - 96 + 0x0f60) & 0xfff;
 
-                string sfrName = Pic18Sfr.LookupSfr(absAddr);
-
-                if (sfrName != null)
-                {
-                    return sfrName;
-                }
-                else
-                {
-                    return string.Format("Mem[0x{0:X3}]", addr);
-                }
+                return ResolveAbsAddr(absAddr);
             }
             else
             {
@@ -259,7 +264,7 @@ namespace picdasm
 
         public void MOVFF(int source, int dest)
         {
-            o.WriteLine("MEM({0}) = MEM({1});", source, dest);
+            o.WriteLine("{0} = {1};", ResolveAbsAddr(dest), ResolveAbsAddr(source));
         }
 
         public void BRA(int off)
