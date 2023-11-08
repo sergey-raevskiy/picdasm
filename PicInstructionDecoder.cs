@@ -14,6 +14,14 @@ namespace picdasm
         F = 0x02,
     }
 
+    enum TableOpMode
+    {
+        None = 0,
+        PostIncrement = 1,
+        PreIncrement = 2,
+        PostDecrement = 3,
+    }
+
     interface IPicInstructionProcessor
     {
         // Miscellaneous instructions
@@ -23,6 +31,8 @@ namespace picdasm
         //void PUSH();
         //void POP();
         //void DAW();
+
+        void TBLRD(TableOpMode mode);
 
         // Literal operations: W ← OP(k,W)
         //void SUBLW(byte literal);
@@ -40,8 +50,8 @@ namespace picdasm
         //void ANDWF(byte addr, DestinationMode dest, AccessMode access);
         //void XORWF(byte addr, DestinationMode dest, AccessMode access);
         //void COMF(byte addr, DestinationMode dest, AccessMode access);
-        //void ADDWFC(byte addr, DestinationMode dest, AccessMode access);
-        //void ADDWF(byte addr, DestinationMode dest, AccessMode access);
+        void ADDWFC(byte addr, DestinationMode dest, AccessMode access);
+        void ADDWF(byte addr, DestinationMode dest, AccessMode access);
         //void INCF(byte addr, DestinationMode dest, AccessMode access);
         //void DECFSZ(byte addr, DestinationMode dest, AccessMode access);
         //void RRCF(byte addr, DestinationMode dest, AccessMode access);
@@ -67,6 +77,7 @@ namespace picdasm
         //void NEGF(byte addr, AccessMode mode);
         void MOVWF(byte addr, AccessMode mode);
 
+        void MOVFF(int source, int dest);
         void BRA(int offset);
 
         void GOTO(int addr);
@@ -113,12 +124,38 @@ namespace picdasm
             }
         }
 
+        private static TableOpMode TableMode(byte loByte)
+        {
+            byte mode = (byte)(loByte & 0x3);
+            switch (mode)
+            {
+                case (byte)TableOpMode.None:
+                case (byte)TableOpMode.PostIncrement:
+                case (byte)TableOpMode.PostDecrement:
+                case (byte)TableOpMode.PreIncrement:
+                    return (TableOpMode)mode;
+
+                default:
+                    throw new InvalidOperationException();
+            }
+        }
+
         private static int BraRCallOffset(byte hiByte, byte loByte)
         {
             return -1;
         }
 
         private static int CallGotoAddr(byte loByte, byte exHi, byte exLo)
+        {
+            return -1;
+        }
+
+        private int MovffSource(byte hiByte, byte loByte)
+        {
+            return -1;
+        }
+
+        private int MovffDest(byte exHi, byte exLo)
         {
             return -1;
         }
@@ -146,7 +183,12 @@ namespace picdasm
                         //case 0b_0000_0110: p.POP(); return 2;
                         //case 0b_0000_0111: p.DAW(); return 2;
 
-                        default: p.Unknown(hiByte, loByte); return 2;
+                        case 0b_0000_1000:
+                        case 0b_0000_1001:
+                        case 0b_0000_1010:
+                        case 0b_0000_1011: p.TBLRD(TableMode(loByte)); return 2;
+
+                        default: goto unknown;
                     }
 
                 // Literal operations: W ← OP(k,W)
@@ -185,14 +227,14 @@ namespace picdasm
                 //case 0b_0001_1101:
                 //case 0b_0001_1110:
                 //case 0b_0001_1111: p.COMF(loByte, Destination(hiByte), Access(hiByte)); return 2;
-                //case 0b_0010_0000:
-                //case 0b_0010_0001:
-                //case 0b_0010_0010:
-                //case 0b_0010_0011: p.ADDWFC(loByte, Destination(hiByte), Access(hiByte)); return 2;
-                //case 0b_0010_0100:
-                //case 0b_0010_0101:
-                //case 0b_0010_0110:
-                //case 0b_0010_0111: p.ADDWF(loByte, Destination(hiByte), Access(hiByte)); return 2;
+                case 0b_0010_0000:
+                case 0b_0010_0001:
+                case 0b_0010_0010:
+                case 0b_0010_0011: p.ADDWFC(loByte, Destination(hiByte), Access(hiByte)); return 2;
+                case 0b_0010_0100:
+                case 0b_0010_0101:
+                case 0b_0010_0110:
+                case 0b_0010_0111: p.ADDWF(loByte, Destination(hiByte), Access(hiByte)); return 2;
                 //case 0b_0010_1000:
                 //case 0b_0010_1001:
                 //case 0b_0010_1010:
@@ -269,6 +311,35 @@ namespace picdasm
                 case 0b_0110_1110:
                 case 0b_0110_1111: p.MOVWF(loByte, Access(hiByte)); return 2;
 
+                // MOVFF
+                case 0b_1100_0000:
+                case 0b_1100_0001:
+                case 0b_1100_0010:
+                case 0b_1100_0011:
+                case 0b_1100_0100:
+                case 0b_1100_0101:
+                case 0b_1100_0110:
+                case 0b_1100_0111:
+                case 0b_1100_1000:
+                case 0b_1100_1001:
+                case 0b_1100_1010:
+                case 0b_1100_1011:
+                case 0b_1100_1100:
+                case 0b_1100_1101:
+                case 0b_1100_1110:
+                case 0b_1100_1111:
+                    {
+                        if (data.Length < offset + 4)
+                            return 0;
+                        byte exHi = data[offset + 3];
+                        byte exLo = data[offset + 2];
+                        if ((exHi & 0xf0) != 0xf0)
+                            goto unknown;
+
+                        p.MOVFF(MovffSource(hiByte, loByte), MovffDest(exHi, exLo));
+                        return 4;
+                    }
+
                 // BRA n
                 // 0b_1101_0nnn
                 case 0b_1101_0000:
@@ -287,12 +358,18 @@ namespace picdasm
                             return 0;
                         byte exHi = data[offset + 3];
                         byte exLo = data[offset + 2];
+                        if ((exHi & 0xf0) != 0xf0)
+                            goto unknown;
                         p.GOTO(CallGotoAddr(loByte, exHi, exLo));
                         return 4;
                     }
 
-                default: p.Unknown(hiByte, loByte); return 2;
+                default: goto unknown;
             }
+
+            unknown:
+            p.Unknown(hiByte, loByte);
+            return 2;
         }
     }
 }

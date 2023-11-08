@@ -21,19 +21,6 @@ namespace picdasm
             }
         }
 
-        private string ResolveDest(byte addr, DestinationMode dest, AccessMode access)
-        {
-            if (dest == DestinationMode.W)
-            {
-                return "W";
-            }
-            else
-            {
-                return ResolveAddr(addr, access);
-            }
-        }
-
-
         public InstructionWriter(TextWriter o)
         {
             this.o = o;
@@ -49,14 +36,68 @@ namespace picdasm
             o.WriteLine("clrwdt();");
         }
 
+        public void TBLRD(TableOpMode mode)
+        {
+            switch (mode)
+            {
+                case TableOpMode.None:
+                    o.WriteLine("TABLAT = ProgMem(TBLPTR);");
+                    break;
+                case TableOpMode.PostIncrement:
+                    o.WriteLine("TABLAT = ProgMem(TBLPTR++);");
+                    break;
+                case TableOpMode.PostDecrement:
+                    o.WriteLine("TABLAT = ProgMem(TBLPTR--);");
+                    break;
+                case TableOpMode.PreIncrement:
+                    o.WriteLine("TABLAT = ProgMem(++TBLPTR);");
+                    break;
+                default:
+                    throw new InvalidOperationException();
+            }
+        }
+
         public void MOVLW(byte literal)
         {
+            o.WriteLine();
             o.WriteLine("W = 0x{0:X2};", literal);
         }
 
         public void MOVF(byte addr, DestinationMode dest, AccessMode access)
         {
-            o.WriteLine("{0} = {1};", ResolveDest(addr, dest, access), ResolveAddr(addr, access));
+            if (dest == DestinationMode.W)
+            {
+                o.WriteLine();
+                o.WriteLine("W = {0};", ResolveAddr(addr, access));
+            }
+            else
+            {
+                o.WriteLine("{0} = {1};", ResolveAddr(addr, access), ResolveAddr(addr, access));
+            }
+        }
+
+        public void ADDWF(byte addr, DestinationMode dest, AccessMode access)
+        {
+            if (dest == DestinationMode.W)
+            {
+                o.WriteLine("W += {0};", ResolveAddr(addr, access));
+            }
+            else
+            {
+                o.WriteLine("{0} += W;", ResolveAddr(addr, access));
+            }
+        }
+
+        public void ADDWFC(byte addr, DestinationMode dest, AccessMode access)
+        {
+            if (dest == DestinationMode.W)
+            {
+                o.WriteLine("W += {0} + C;", ResolveAddr(addr, access));
+            }
+            else
+            {
+                o.WriteLine("{0} += W + C;", ResolveAddr(addr, access));
+            }
         }
 
         public void CPFSEQ(byte addr, AccessMode mode)
@@ -67,6 +108,11 @@ namespace picdasm
         public void MOVWF(byte addr, AccessMode mode)
         {
             o.WriteLine("{0} = W;", ResolveAddr(addr, mode));
+        }
+
+        public void MOVFF(int source, int dest)
+        {
+            o.WriteLine("MEM({0}) = MEM({1});", source, dest);
         }
 
         public void BRA(int offset)
