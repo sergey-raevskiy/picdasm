@@ -266,6 +266,7 @@ namespace picdasm
         {
             int addr = c.PC + 2 * off;
             o.WriteLine("goto _0x{0:X5};", addr);
+            o.PreSpace();
             o.RefGoto(addr);
         }
 
