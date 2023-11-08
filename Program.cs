@@ -137,6 +137,21 @@ namespace picdasm
             }
         }
 
+        private string ResolveBit(byte addr, AccessMode access, int bit)
+        {
+            if (access == AccessMode.Access)
+            {
+                int absAddr = (addr - 96 + 0x0f60) & 0xfff;
+
+                string s = Pic18Sfr.LookupBit(absAddr * 8 + bit);
+                if (s != null)
+                    return s;
+            }
+
+            return bit.ToString();
+        }
+
+
         public InstructionWriter(Context c)
         {
             this.o = new Writer();
@@ -381,17 +396,17 @@ namespace picdasm
 
         public void BTG(byte addr, int bit, AccessMode access)
         {
-            o.WriteLine("{0} ^= (1 << {1});", ResolveAddr(addr, access), bit);
+            o.WriteLine("{0} ^= (1 << {1});", ResolveAddr(addr, access), ResolveBit(addr, access, bit));
         }
 
         public void BSF(byte addr, int bit, AccessMode access)
         {
-            o.WriteLine("{0} |= (1 << {1});", ResolveAddr(addr, access), bit);
+            o.WriteLine("{0} |= (1 << {1});", ResolveAddr(addr, access), ResolveBit(addr, access, bit));
         }
 
         public void BCF(byte addr, int bit, AccessMode access)
         {
-            o.WriteLine("{0} &= ~(1 << {1});", ResolveAddr(addr, access), bit);
+            o.WriteLine("{0} &= ~(1 << {1});", ResolveAddr(addr, access), ResolveBit(addr, access, bit));
         }
 
         public void SETF(byte addr, AccessMode access)
@@ -459,13 +474,13 @@ namespace picdasm
 
         public void BTFSS(byte addr, int bit, AccessMode access)
         {
-            o.WriteLine("if (!({0} & (1 << {1})))", ResolveAddr(addr, access), bit);
+            o.WriteLine("if (!({0} & (1 << {1})))", ResolveAddr(addr, access), ResolveBit(addr, access, bit));
             o.IncIndent();
         }
 
         public void BTFSC(byte addr, int bit, AccessMode access)
         {
-            o.WriteLine("if ({0} & (1 << {1}))", ResolveAddr(addr, access), bit);
+            o.WriteLine("if ({0} & (1 << {1}))", ResolveAddr(addr, access), ResolveBit(addr, access, bit));
             o.IncIndent();
         }
 
