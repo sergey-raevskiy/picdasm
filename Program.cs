@@ -143,6 +143,8 @@ namespace picdasm
             this.c = c;
 
             o.RefCall(0);
+            o.RefCall(0x8);
+            o.RefCall(0x18);
         }
 
         public void SetPc(int pc)
