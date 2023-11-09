@@ -926,6 +926,16 @@ namespace picdasm
         {
             o.WriteLine("_return_(ULNK(FSR2 -= k));", k);
         }
+
+        public void EMULEN()
+        {
+            o.WriteLine("_emulen_();");
+        }
+
+        public void EMULDIS()
+        {
+            o.WriteLine("_emuldis_();");
+        }
     }
 
     interface IPicInstructionFetcher

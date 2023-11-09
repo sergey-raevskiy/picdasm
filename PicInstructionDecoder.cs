@@ -46,6 +46,9 @@ namespace picdasm
 
         void CALLW();
 
+        void EMULEN();
+        void EMULDIS();
+
         void RESET();
 
         void MOVLB(int literal);
@@ -277,6 +280,9 @@ namespace picdasm
                         case 0b_0001_0011: e.RETURN(CallReturnMode(loByte)); return 2;
 
                         case 0b_0001_0100: e.CALLW(); return 2;
+
+                        case 0b_0001_0101: e.EMULEN(); return 2;
+                        case 0b_0001_0110: e.EMULDIS(); return 2;
 
                         case 0b_1111_0000:
                         case 0b_1111_0001:
