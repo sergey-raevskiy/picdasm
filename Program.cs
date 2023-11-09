@@ -771,11 +771,11 @@ namespace picdasm
         {
             if (dest == DestinationMode.W)
             {
-                o.WriteLine("W = _rot_(RRCF, {0});", ResolveAddr(addr, access));
+                o.WriteLine("W = _rot_(RLCF, {0});", ResolveAddr(addr, access));
             }
             else
             {
-                o.WriteLine("{0} = _rot_(RRCF, {0});", ResolveAddr(addr, access));
+                o.WriteLine("{0} = _rot_(RLCF, {0});", ResolveAddr(addr, access));
             }
         }
 
