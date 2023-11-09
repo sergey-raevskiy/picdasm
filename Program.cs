@@ -639,7 +639,7 @@ namespace picdasm
 
         public void ANDLW(byte literal)
         {
-            o.WriteLine("W &= 0x{0};", literal);
+            o.WriteLine("W &= 0x{0:X2};", literal);
         }
 
         public void ANDWF(byte addr, DestinationMode dest, AccessMode access)
