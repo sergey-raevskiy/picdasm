@@ -1016,7 +1016,7 @@ namespace picdasm
                 }
             }
 
-            Console.WriteLine("Last initialized address: {0:X6}", progMemImage.LastInit());
+            Console.Error.WriteLine("Last initialized address: {0:X6}", progMemImage.LastInit());
 
             Disasm(progMemImage.GetMem());
         }
