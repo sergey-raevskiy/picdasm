@@ -119,7 +119,7 @@ namespace picdasm
             }
             else
             {
-                return string.Format("var_0x{0:X3}", addr);
+                return string.Format("Mem[0x{0:X3}]", addr);
             }
         }
 
@@ -133,7 +133,7 @@ namespace picdasm
             }
             else
             {
-                return string.Format("Mem[BSR << 4 | 0x{0:X2}]", addr);
+                return string.Format("Mem[BSR << 8 | 0x{0:X2}]", addr);
             }
         }
 
