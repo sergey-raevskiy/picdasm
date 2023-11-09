@@ -34,9 +34,9 @@ namespace picdasm
         void NOP();
         void SLEEP();
         void CLRWDT();
-        //void PUSH();
+        void PUSH();
         void POP();
-        //void DAW();
+        void DAW();
 
         void TBLRD(TableOpMode mode);
         void TBLWT(TableOpMode mode);
@@ -118,6 +118,14 @@ namespace picdasm
         void BNOV(int off);
         void BN(int off);
         void BNN(int off);
+
+        void ADDFSR(int n, int k);
+        void ADDULNK(int k);
+        void SUBFSR(int n, int k);
+        void SUBULNK(int k);
+        void PUSHL(byte l);
+        void MOVSF(int src, int dst);
+        void MOVSS(int src, int dst);
 
         void CALL(int addr, CallReturnOpMode mode);
         void LFSR(int f, int k);
@@ -250,9 +258,9 @@ namespace picdasm
                         case 0b_0000_0000: e.NOP(); return 2;
                         case 0b_0000_0011: e.SLEEP(); return 2;
                         case 0b_0000_0100: e.CLRWDT(); return 2;
-                        //case 0b_0000_0101: p.PUSH(); return 2;
+                        case 0b_0000_0101: e.PUSH(); return 2;
                         case 0b_0000_0110: e.POP(); return 2;
-                        //case 0b_0000_0111: p.DAW(); return 2;
+                        case 0b_0000_0111: e.DAW(); return 2;
 
                         case 0b_0000_1000:
                         case 0b_0000_1001:
@@ -560,6 +568,59 @@ namespace picdasm
                 case 0b_1110_0110: e.BN(ConditionalOffset(loByte)); return 2;
                 case 0b_1110_0111: e.BNN(ConditionalOffset(loByte)); return 2;
 
+                case 0b_1110_1000:
+                    {
+                        int n = loByte >> 6;
+
+                        if (n  == 3)
+                        {
+                            e.ADDULNK(loByte & 0x3f);
+                        }
+                        else
+                        {
+                            e.ADDFSR(n, loByte & 0x3f);
+                        }
+
+                        return 2;
+                    }
+
+                case 0b_1110_1001:
+                    {
+                        int n = loByte >> 6;
+
+                        if (n == 3)
+                        {
+                            e.SUBULNK(loByte & 0x3f);
+                        }
+                        else
+                        {
+                            e.SUBFSR(n, loByte & 0x3f);
+                        }
+
+                        return 2;
+                    }
+
+                case 0b_1110_1010: e.PUSHL(loByte); return 2;
+
+                case 0b_1110_1011:
+                    {
+                        byte src = (byte)(loByte & 0x7f);
+                        byte exHi;
+                        byte exLo;
+                        fetcher.FetchInstruciton(out exHi, out exLo);
+
+                        if ((loByte & 0x80) == 0)
+                        {
+                            e.MOVSF(src, ((exHi & 0xf) << 8) | exLo);
+                        }
+                        else
+                        {
+                            e.MOVSS(src, exLo & 0x7f);
+                        }
+
+                        return 4;
+                    }
+
                 // CALL k
                 case 0b_1110_1100:
                 case 0b_1110_1101:
@@ -568,8 +629,8 @@ namespace picdasm
                         byte exLo;
                         fetcher.FetchInstruciton(out exHi, out exLo);
 
-                        if ((exHi & 0xf0) != 0xf0)
-                            goto unknown;
+                        //if ((exHi & 0xf0) != 0xf0)
+                        //    goto unknown;
                         e.CALL(CallGotoAddr(loByte, exHi, exLo), CallReturnMode(hiByte));
                         return 4;
                     }
@@ -577,15 +638,15 @@ namespace picdasm
                 // LFSR n
                 case 0b_1110_1110:
                     {
-                        if ((loByte & 0xC0) != 0)
-                            goto unknown;
+                        //if ((loByte & 0xC0) != 0)
+                        //    goto unknown;
 
                         byte exHi;
                         byte exLo;
                         fetcher.FetchInstruciton(out exHi, out exLo);
 
-                        if (exHi  != 0xf0)
-                            goto unknown;
+                        //if (exHi  != 0xf0)
+                        //    goto unknown;
                         e.LFSR((loByte >> 4) & 3, exLo | ((loByte & 0xf) << 8));
                         return 4;
                     }
@@ -597,8 +658,8 @@ namespace picdasm
                         byte exLo;
                         fetcher.FetchInstruciton(out exHi, out exLo);
 
-                        if ((exHi & 0xf0) != 0xf0)
-                            goto unknown;
+                        //if ((exHi & 0xf0) != 0xf0)
+                        //    goto unknown;
                         e.GOTO(CallGotoAddr(loByte, exHi, exLo));
                         return 4;
                     }

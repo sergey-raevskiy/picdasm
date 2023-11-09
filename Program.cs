@@ -881,6 +881,51 @@ namespace picdasm
         {
             o.WriteLine("_sleep_();");
         }
+
+        public void MOVSF(int src, int dst)
+        {
+            o.WriteLine("{1} = Mem[FSR2 + 0x{0:X2}]", src, ResolveAbsAddr(dst));
+        }
+
+        public void MOVSS(int src, int dst)
+        {
+            o.WriteLine("Mem[FSR2 + 0x{1:X2}] = Mem[FSR2 + 0x{0:X2}]", src, dst);
+        }
+
+        public void PUSH()
+        {
+            o.WriteLine("_push_();");
+        }
+
+        public void DAW()
+        {
+            o.WriteLine("W = _rot_(DAW, W);");
+        }
+
+        public void ADDFSR(int n, int k)
+        {
+            o.WriteLine("FSR{0} += 0x{1:X2};", n, k);
+        }
+
+        public void ADDULNK(int k)
+        {
+            o.WriteLine("_return_(ULNK(FSR2 += k));", k);
+        }
+
+        public void PUSHL(byte l)
+        {
+            o.WriteLine("Mem[FSR2--] = 0x{0:X2};", l);
+        }
+
+        public void SUBFSR(int n, int k)
+        {
+            o.WriteLine("FSR{0} -= 0x{1:X2};", n, k);
+        }
+
+        public void SUBULNK(int k)
+        {
+            o.WriteLine("_return_(ULNK(FSR2 -= k));", k);
+        }
     }
 
     interface IPicInstructionFetcher
