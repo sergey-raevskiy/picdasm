@@ -18,8 +18,8 @@ namespace picdasm
     {
         None = 0,
         PostIncrement = 1,
-        PreIncrement = 2,
-        PostDecrement = 3,
+        PostDecrement = 2,
+        PreIncrement = 3,
     }
 
     enum CallReturnOpMode
