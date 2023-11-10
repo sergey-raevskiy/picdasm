@@ -226,7 +226,7 @@ namespace picdasm
 
         private int BitOpBit(byte hiByte)
         {
-            return (hiByte & 6) >> 1;
+            return (hiByte & 0xE) >> 1;
         }
 
         static CallReturnOpMode CallReturnMode(byte iByte)
