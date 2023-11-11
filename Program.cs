@@ -6,11 +6,8 @@ namespace picdasm
 {
     internal class Program
     {
-        private static void Disasm(byte[] prog)
+        private static void DisasmCore(byte[] prog, Context ctx, IPicInstructionExecutor qq)
         {
-            var ctx = new Context(prog);
-
-            var qq = new InstructionWriter(ctx);
             var dec = new PicInstructionDecoder(ctx, qq);
 
             while (ctx.PC < prog.Length)
@@ -18,6 +15,18 @@ namespace picdasm
                 qq.SetPc(ctx.PC);
                 dec.DecodeAt();
             }
+        }
+
+        private static void Disasm(byte[] prog)
+        {
+            var ctx = new Context(prog);
+            var qq = new InstructionWriter(ctx);
+
+            DisasmCore(prog, ctx, qq);
+
+            ctx.PC = 0;
+            var qq2 = new XorSwitchMetaInstructionProcessor();
+            DisasmCore(prog, ctx, qq2);
 
             qq.Dump(Console.Out);
         }

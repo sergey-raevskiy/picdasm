@@ -30,6 +30,9 @@ namespace picdasm
 
     interface IPicInstructionExecutor
     {
+        // HACK
+        void SetPc(int pc);
+
         // Miscellaneous instructions
         void NOP();
         void SLEEP();
