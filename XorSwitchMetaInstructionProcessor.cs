@@ -47,7 +47,6 @@ namespace picdasm
                 }
                 lines.Add("}");
                 lines.Add("/* default: */");
-                lines.Add("");
 
                 o.Rewrite(startPc, endPc, lines.ToArray());
                 o.RefGoto(startPc);

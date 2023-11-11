@@ -47,7 +47,7 @@ namespace picdasm
         {
             if (prespace)
             {
-                lines.Add(new Line { addr = PC, text = "" });
+                lines.Add(new Line { addr = -1, text = "" });
                 prespace = false;
             }
 
@@ -91,6 +91,10 @@ namespace picdasm
                         {
                             yield return new Line() { addr = line.addr, text = "    " + ll };
                         }
+                    }
+                    else if (calls.Contains(line.addr) || gotos.Contains(line.addr))
+                    {
+                        yield return new Line() { addr = -1, text = string.Format(" /* warn: ref _0x{0:X5} is broken */", line.addr) };
                     }
                 }
                 else
