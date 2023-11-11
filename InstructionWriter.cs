@@ -6,7 +6,7 @@ namespace picdasm
 {
     internal class InstructionWriter : IPicInstructionExecutor
     {
-        private readonly Writer o;
+        public readonly Writer o;
         private readonly Context c;
 
         private static string ResolveAbsAddr(int addr)

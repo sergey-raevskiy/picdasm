@@ -1,5 +1,7 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 
 namespace picdasm
 {
@@ -45,7 +47,7 @@ namespace picdasm
         {
             if (prespace)
             {
-                lines.Add(new Line { addr = -1, text = "" });
+                lines.Add(new Line { addr = PC, text = "" });
                 prespace = false;
             }
 
@@ -60,25 +62,68 @@ namespace picdasm
             lines.Add(new Line { addr = PC, text = text });
         }
 
-        public void Dump(TextWriter w)
+        private readonly Dictionary<int, string[]> Rewrites = new Dictionary<int, string[]>();
+
+        public void Rewrite(int start, int end, string[] lines)
+        {
+            for (int i = start; i < end; i += 2)
+            {
+                if (Rewrites.ContainsKey(i))
+                {
+                    throw new Exception("Rewrite collision");
+                }
+
+                Rewrites.Add(i, lines);
+                lines = null;
+            }
+        }
+
+        private IEnumerable<Line> Lines()
         {
             foreach (var line in lines)
             {
-                bool sk = false;
-                if (calls.Contains(line.addr))
+                if (Rewrites.ContainsKey(line.addr))
                 {
-                    w.WriteLine();
-                    sk = true;
-                    w.WriteLine("case 0x{0:X5}:", line.addr);
+                    var qq = Rewrites[line.addr];
+                    if (qq != null)
+                    {
+                        foreach (var ll in qq)
+                        {
+                            yield return new Line() { addr = line.addr, text = "    " + ll };
+                        }
+                    }
                 }
-
-                if (gotos.Contains(line.addr))
+                else
                 {
-                    if (!sk)
+                    yield return line;
+                }
+            }
+        }
+
+        public void Dump(TextWriter w)
+        {
+            int prev = -1;
+            foreach (var line in Lines())
+            {
+                if (line.addr != prev)
+                {
+                    bool sk = false;
+                    if (calls.Contains(line.addr))
+                    {
                         w.WriteLine();
-                    w.WriteLine("_0x{0:X5}:", line.addr);
+                        sk = true;
+                        w.WriteLine("case 0x{0:X5}:", line.addr);
+                    }
+
+                    if (gotos.Contains(line.addr))
+                    {
+                        if (!sk)
+                            w.WriteLine();
+                        w.WriteLine("_0x{0:X5}:", line.addr);
+                    }
                 }
 
+                prev = line.addr;
                 w.WriteLine(line.text);
             }
         }

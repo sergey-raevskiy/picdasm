@@ -25,7 +25,7 @@ namespace picdasm
             DisasmCore(prog, ctx, qq);
 
             ctx.PC = 0;
-            var qq2 = new XorSwitchMetaInstructionProcessor();
+            var qq2 = new XorSwitchMetaInstructionProcessor(qq.o);
             DisasmCore(prog, ctx, qq2);
 
             qq.Dump(Console.Out);

@@ -5,6 +5,11 @@ namespace picdasm
 {
     class XorSwitchMetaInstructionProcessor : MetaInstructionProcessorBase
     {
+        public XorSwitchMetaInstructionProcessor(Writer o)
+        {
+            this.o = o;
+        }
+
         enum State
         {
             WaitXor,
@@ -23,25 +28,31 @@ namespace picdasm
         private int startPc;
         private int endPc;
         private List<XorSwitchSeq> seq = new List<XorSwitchSeq>();
+        private readonly Writer o;
 
         protected override void ResetState()
         {
             if (state == State.WaitXor && seq.Count > 0)
             {
+                List<string> lines = new List<string>();
+
                 byte st = 0;
-                Console.WriteLine("_0x{0:X5}:", startPc);
-                Console.WriteLine("switch (W)");
-                Console.WriteLine("{");
+                lines.Add("switch (W)");
+                lines.Add("{");
                 foreach (XorSwitchSeq s in seq)
                 {
                     st ^= s.literal;
 
-                    Console.WriteLine("case 0x{0:X2}: goto _0x{1:X5};", st, s.jumpAddr);
+                    lines.Add(string.Format("case {0}: goto _0x{1:X5};", st, s.jumpAddr));
                 }
-                Console.WriteLine("}");
-                Console.WriteLine("/* default: */");
-                Console.WriteLine("_0x{0:X5}:", endPc);
-                Console.WriteLine("");
+                lines.Add("}");
+                lines.Add("/* default: */");
+                lines.Add("");
+
+                o.Rewrite(startPc, endPc, lines.ToArray());
+                o.RefGoto(startPc);
+                o.RefGoto(endPc);
+
             }
 
             seq.Clear();
