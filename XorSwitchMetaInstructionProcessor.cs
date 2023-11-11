@@ -44,11 +44,11 @@ namespace picdasm
                     var s = seq[i];
 
                     if (i>0)
-                        lines.Add("");
+                        lines.Add(null);
 
                     while (i < seq.Count && seq[i].jumpAddr == s.jumpAddr)
                     {
-                        st ^= s.literal;
+                        st ^= seq[i].literal;
                         lines.Add(string.Format("case 0x{0:X2}:", st));
                         i++;
                     }

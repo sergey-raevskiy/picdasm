@@ -45,15 +45,13 @@ namespace picdasm
 
         public void WriteLine(string f, params object[] args)
         {
-            string text = "";
-
             if (prespace)
             {
-                text = "\r\n";
+                lines.Add(new Line() { addr = PC, text = "" });
                 prespace = false;
             }
 
-            text += "    ";
+            string text = "    ";
             if (indent != 0)
             {
                 text += "    ";
@@ -91,7 +89,7 @@ namespace picdasm
                     {
                         foreach (var ll in qq)
                         {
-                            yield return new Line() { addr = line.addr, text = "    " + ll };
+                            yield return new Line() { addr = line.addr, text =  ll != null ? "    " + ll : "" };
                         }
                     }
                     else if (calls.Contains(line.addr) || gotos.Contains(line.addr))
@@ -111,7 +109,7 @@ namespace picdasm
             int prev = -1;
             foreach (var line in Lines())
             {
-                if (line.addr != prev)
+                if (line.addr != prev && line.text!="")
                 {
                     bool sk = false;
                     if (calls.Contains(line.addr))
@@ -127,9 +125,10 @@ namespace picdasm
                             w.WriteLine();
                         w.WriteLine("_0x{0:X5}:", line.addr);
                     }
+
+                    prev = line.addr;
                 }
 
-                prev = line.addr;
                 w.WriteLine(line.text);
             }
         }
