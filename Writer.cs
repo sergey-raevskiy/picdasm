@@ -45,13 +45,15 @@ namespace picdasm
 
         public void WriteLine(string f, params object[] args)
         {
+            string text = "";
+
             if (prespace)
             {
-                lines.Add(new Line { addr = -1, text = "" });
+                text = "\r\n";
                 prespace = false;
             }
 
-            string text = "    ";
+            text += "    ";
             if (indent != 0)
             {
                 text += "    ";
