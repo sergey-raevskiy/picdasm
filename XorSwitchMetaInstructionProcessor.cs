@@ -36,7 +36,7 @@ namespace picdasm
                 {
                     st ^= s.literal;
 
-                    Console.WriteLine("case 0x{0:X2}: goto 0x{1:X5};", st, s.jumpAddr);
+                    Console.WriteLine("case 0x{0:X2}: goto _0x{1:X5};", st, s.jumpAddr);
                 }
                 Console.WriteLine("}");
                 Console.WriteLine("/* default: */");
