@@ -43,7 +43,7 @@ namespace picdasm
                 {
                     st ^= s.literal;
 
-                    lines.Add(string.Format("case {0}: goto _0x{1:X5};", st, s.jumpAddr));
+                    lines.Add(string.Format("case 0x{0:X2}: goto _0x{1:X5};", st, s.jumpAddr));
                 }
                 lines.Add("}");
                 lines.Add("/* default: */");
