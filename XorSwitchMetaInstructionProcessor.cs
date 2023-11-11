@@ -39,11 +39,21 @@ namespace picdasm
                 byte st = 0;
                 lines.Add("switch (W)");
                 lines.Add("{");
-                foreach (XorSwitchSeq s in seq)
+                for (int i =0; i < seq.Count;)
                 {
-                    st ^= s.literal;
+                    var s = seq[i];
 
-                    lines.Add(string.Format("case 0x{0:X2}: goto _0x{1:X5};", st, s.jumpAddr));
+                    if (i>0)
+                        lines.Add("");
+
+                    while (i < seq.Count && seq[i].jumpAddr == s.jumpAddr)
+                    {
+                        st ^= s.literal;
+                        lines.Add(string.Format("case 0x{0:X2}:", st));
+                        i++;
+                    }
+
+                    lines[lines.Count - 1] += string.Format(" goto _0x{0:X5};", s.jumpAddr);
                 }
                 lines.Add("}");
                 lines.Add("/* default: */");
