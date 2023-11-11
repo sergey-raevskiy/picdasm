@@ -44,15 +44,19 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="AddrMode.cs" />
+    <Compile Include="Context.cs" />
+    <Compile Include="InstructionWriter.cs" />
     <Compile Include="IntelHexReader.cs" />
     <Compile Include="IntelHexRecordDumper.cs" />
     <Compile Include="IntelHexRecordParser.cs" />
     <Compile Include="IntelHexRecordBuf.cs" />
+    <Compile Include="IPicInstructionFetcher.cs" />
     <Compile Include="Pic18Sfr.cs" />
     <Compile Include="PicInstructionDecoder.cs" />
     <Compile Include="PicProgMemImage.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Writer.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
