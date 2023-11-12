@@ -45,6 +45,7 @@
   <ItemGroup>
     <Compile Include="AddrMode.cs" />
     <Compile Include="Context.cs" />
+    <Compile Include="ImmediateSwitchInstructionProcessor.cs" />
     <Compile Include="InstructionWriter.cs" />
     <Compile Include="IntelHexReader.cs" />
     <Compile Include="IntelHexRecordDumper.cs" />
