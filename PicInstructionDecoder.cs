@@ -530,7 +530,6 @@ namespace picdasm
             Inst(0b_1111_0000, 0b_1111_0000, PicInstrucitonType.NOPEX);
         }
 
-
         public PicInstructionDecoder(IPicInstructionExecutor e)
         {
             this.e = e;
