@@ -3,7 +3,12 @@ using System.Collections.Generic;
 
 namespace picdasm
 {
-    class XorSwitchMetaInstructionProcessor : MetaInstructionProcessorBase
+    interface IPicInstructionExecutorNoDispatch
+    {
+        void Exec(int pc, PicInstructionBuf buf, PicInstrucitonType type);
+    }
+
+    class XorSwitchMetaInstructionProcessor : IPicInstructionExecutorNoDispatch
     {
         public XorSwitchMetaInstructionProcessor(Writer o)
         {
@@ -25,12 +30,38 @@ namespace picdasm
 
         State state;
 
+        int pc;
         private int startPc;
         private int endPc;
         private List<XorSwitchSeq> seq = new List<XorSwitchSeq>();
         private readonly Writer o;
 
-        protected override void ResetState()
+        public void Exec(int pc, PicInstructionBuf buf, PicInstrucitonType type)
+        {
+            this.pc = pc;
+            if (type == PicInstrucitonType.XORLW)
+            {
+                XORLW(buf.Literal);
+            }
+            else if (type == PicInstrucitonType.BZ)
+            {
+                BZ(buf.ConditionalOffset);
+            }
+            else if (type == PicInstrucitonType.BTFSC)
+            {
+                BTFSC(buf.FileReg, buf.BitOpBit, buf.Access);
+            }
+            else if (type == PicInstrucitonType.BRA)
+            {
+                BRA(buf.BraRCallOffset);
+            }
+            else
+            {
+                ResetState();
+            }
+        }
+
+        protected void ResetState()
         {
             if (state == State.WaitXor && seq.Count > 0)
             {
@@ -66,10 +97,9 @@ namespace picdasm
 
             seq.Clear();
             state = State.WaitXor;
-            base.ResetState();
         }
 
-        public override void XORLW(byte literal)
+        public void XORLW(byte literal)
         {
             if (state == State.WaitXor)
             {
@@ -84,7 +114,7 @@ namespace picdasm
             }
         }
 
-        public override void BZ(int off)
+        public void BZ(int off)
         {
             if (state == State.WaitCheckZ)
             {
@@ -99,7 +129,7 @@ namespace picdasm
             }
         }
 
-        public override void BTFSC(byte addr, int bit, AccessMode access)
+        public void BTFSC(byte addr, int bit, AccessMode access)
         {
             if (state == State.WaitCheckZ && IsZeroBit(addr, bit, access))
             {
@@ -111,7 +141,7 @@ namespace picdasm
             }
         }
 
-        public override void BRA(int off)
+        public void BRA(int off)
         {
             if (state == State.WaitGoto)
             {

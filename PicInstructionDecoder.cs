@@ -54,7 +54,7 @@ namespace picdasm
             return result;
         }
 
-        //public PicInstrucitonType Instruction;
+        public PicInstrucitonType Instruction;
 
         public AccessMode Access
         {
@@ -488,6 +488,7 @@ namespace picdasm
                     break;
             }
 
+            buf.Instruction = inst;
             return inst;
         }
     }

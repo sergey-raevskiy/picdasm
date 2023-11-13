@@ -2,10 +2,19 @@
 
 namespace picdasm
 {
-    class Driver
+    class Driver : IPicInstructionExecutorNoDispatch
     {
-        public static void Drive(PicInstructionBuf buf, PicInstrucitonType type, IPicInstructionExecutor e)
+        private readonly IPicInstructionExecutor e;
+
+        public Driver(IPicInstructionExecutor e)
         {
+            this.e = e;
+        }
+
+        public void Exec(int pc, PicInstructionBuf buf, PicInstrucitonType type)
+        {
+            e.SetPc(pc);
+
             switch (type)
             {
                 case PicInstrucitonType.NOP: e.NOP(); return;

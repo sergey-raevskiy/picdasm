@@ -6,14 +6,14 @@ namespace picdasm
 {
     internal class Program
     {
-        private static void DisasmCore(byte[] prog, Context ctx, IPicInstructionExecutor qq)
+        private static void DisasmCore(byte[] prog, Context ctx, IPicInstructionExecutorNoDispatch qq)
         {
-            var dec = new PicInstructionDecoder(qq);
+            var dec = new PicInstructionDecoder(null);
             PicInstructionBuf buf = new PicInstructionBuf();
 
             while (ctx.PC < prog.Length)
             {
-                qq.SetPc(ctx.PC);
+                int pc = ctx.PC;
 
                 ctx.Fetch(buf);
 
@@ -21,12 +21,12 @@ namespace picdasm
                 if (instr > PicInstrucitonType.LongStart)
                 {
                     ctx.FetchLong(buf);
-                    Driver.Drive(buf, instr, qq);
+                    qq.Exec(pc, buf, instr);
                     ctx.PC += 4;
                 }
                 else
                 {
-                    Driver.Drive(buf, instr, qq);
+                    qq.Exec(pc, buf, instr);
                     ctx.PC += 2;
                 }
             }
@@ -37,7 +37,7 @@ namespace picdasm
             var ctx = new Context(prog);
             var qq = new InstructionWriter(ctx);
 
-            DisasmCore(prog, ctx, qq);
+            DisasmCore(prog, ctx, new Driver(qq));
 
             ctx = new Context(prog);    
             var qq2 = new XorSwitchMetaInstructionProcessor(qq.o);
@@ -45,7 +45,7 @@ namespace picdasm
 
             ctx = new Context(prog);
             var qq3 = new ImmediateSwitchInstructionProcessor(qq.o);
-            DisasmCore(prog, ctx, qq3);
+            DisasmCore(prog, ctx, new Driver(qq3));
 
 
             qq.Dump(Console.Out);
