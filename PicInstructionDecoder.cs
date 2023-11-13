@@ -355,8 +355,6 @@ namespace picdasm
     {
         public IPicInstructionExecutor e;
 
-        static readonly PicInstrucitonType[] s_hiMap = new PicInstrucitonType[256];
-
         private static void MapInst(PicInstrucitonType[] map,
                                     byte bits, byte mask,
                                     PicInstrucitonType instr)
@@ -366,12 +364,14 @@ namespace picdasm
                 if ((i & mask) != bits)
                     continue;
 
-                if (s_hiMap[i] != PicInstrucitonType.Unknown)
+                if (map[i] != PicInstrucitonType.Unknown)
                     throw new InvalidOperationException("Map conflict");
 
-                s_hiMap[i] = instr;
+                map[i] = instr;
             }
         }
+
+        static readonly PicInstrucitonType[] s_hiMap = new PicInstrucitonType[256];
 
         private static void Inst(byte bits, byte mask, PicInstrucitonType instr)
         {
