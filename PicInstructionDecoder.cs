@@ -372,21 +372,55 @@ namespace picdasm
             }
         }
 
-        static readonly PicInstrucitonType[] s_hiMap = new PicInstrucitonType[256];
+        static readonly PicInstrucitonType[] s_instMap = new PicInstrucitonType[256];
 
         private static void Inst(byte bits, byte mask, PicInstrucitonType instr)
         {
-            MapInst(s_hiMap, bits, mask, instr);
+            MapInst(s_instMap, bits, mask, instr);
         }
 
         private static void Inst(byte bits, PicInstrucitonType instr)
         {
-            MapInst(s_hiMap, bits, 0b_1111_1111, instr);
+            MapInst(s_instMap, bits, 0b_1111_1111, instr);
+        }
+
+        static readonly PicInstrucitonType[] s_miscMap = new PicInstrucitonType[256];
+
+        private static void MiscInst(byte bits, byte mask, PicInstrucitonType instr)
+        {
+            MapInst(s_miscMap, bits, mask, instr);
+        }
+
+        private static void MiscInst(byte bits, PicInstrucitonType instr)
+        {
+            MapInst(s_miscMap, bits, 0b_1111_1111, instr);
         }
 
         static PicInstructionDecoder()
         {
+            // Miscellaneous instructions
+            // 0b_0000_0000 opcode
             Inst(0b_0000_0000, PicInstrucitonType.Misc);
+
+            MiscInst(0b_0000_0000, PicInstrucitonType.NOP);
+            MiscInst(0b_0000_0011, PicInstrucitonType.SLEEP);
+            MiscInst(0b_0000_0100, PicInstrucitonType.CLRWDT);
+            MiscInst(0b_0000_0101, PicInstrucitonType.PUSH);
+            MiscInst(0b_0000_0110, PicInstrucitonType.POP);
+            MiscInst(0b_0000_0111, PicInstrucitonType.DAW);
+
+            MiscInst(0b_0000_1000, 0b_1111_1100, PicInstrucitonType.TBLRD);
+            MiscInst(0b_0000_1100, 0b_1111_1100, PicInstrucitonType.TBLWT);
+
+            MiscInst(0b_0001_0000, 0b_1111_1110, PicInstrucitonType.RETFIE);
+            MiscInst(0b_0001_0010, 0b_1111_1110, PicInstrucitonType.RETURN);
+
+            MiscInst(0b_0001_0100, PicInstrucitonType.CALLW);
+
+            MiscInst(0b_0001_0101, PicInstrucitonType.EMULEN);
+            MiscInst(0b_0001_0110, PicInstrucitonType.EMULDIS);
+
+            MiscInst(0b_1111_0000, 0b_1111_0000, PicInstrucitonType.RESET);
 
             Inst(0b_0000_0001, PicInstrucitonType.MOVLB);
 
@@ -483,56 +517,33 @@ namespace picdasm
 
         public DecodeResult Decode(PicInstructionBuf buf)
         {
-            switch (s_hiMap[buf.NopExHi])
+            switch (s_instMap[buf.NopExHi])
             {
                 // Miscellaneous instructions
                 // 0b_0000_0000 opcode
 
                 case PicInstrucitonType.Misc:
-                    switch (buf.NopExLo)
+                    switch (s_miscMap[buf.NopExLo])
                     {
-                        case 0b_0000_0000: e.NOP(); return DecodeResult.Success;
-                        case 0b_0000_0011: e.SLEEP(); return DecodeResult.Success;
-                        case 0b_0000_0100: e.CLRWDT(); return DecodeResult.Success;
-                        case 0b_0000_0101: e.PUSH(); return DecodeResult.Success;
-                        case 0b_0000_0110: e.POP(); return DecodeResult.Success;
-                        case 0b_0000_0111: e.DAW(); return DecodeResult.Success;
+                        case PicInstrucitonType.NOP: e.NOP(); return DecodeResult.Success;
+                        case PicInstrucitonType.SLEEP: e.SLEEP(); return DecodeResult.Success;
+                        case PicInstrucitonType.CLRWDT: e.CLRWDT(); return DecodeResult.Success;
+                        case PicInstrucitonType.PUSH: e.PUSH(); return DecodeResult.Success;
+                        case PicInstrucitonType.POP: e.POP(); return DecodeResult.Success;
+                        case PicInstrucitonType.DAW: e.DAW(); return DecodeResult.Success;
 
-                        case 0b_0000_1000:
-                        case 0b_0000_1001:
-                        case 0b_0000_1010:
-                        case 0b_0000_1011: e.TBLRD(buf.TableMode); return DecodeResult.Success;
-                        case 0b_0000_1100:
-                        case 0b_0000_1101:
-                        case 0b_0000_1110:
-                        case 0b_0000_1111: e.TBLWT(buf.TableMode); return DecodeResult.Success;
+                        case PicInstrucitonType.TBLRD: e.TBLRD(buf.TableMode); return DecodeResult.Success;
+                        case PicInstrucitonType.TBLWT: e.TBLWT(buf.TableMode); return DecodeResult.Success;
 
-                        case 0b_0001_0000:
-                        case 0b_0001_0001: e.RETFIE(buf.ReturnRetfieMode); return DecodeResult.Success;
-                        case 0b_0001_0010:
-                        case 0b_0001_0011: e.RETURN(buf.ReturnRetfieMode); return DecodeResult.Success;
+                        case PicInstrucitonType.RETFIE: e.RETFIE(buf.ReturnRetfieMode); return DecodeResult.Success;
+                        case PicInstrucitonType.RETURN: e.RETURN(buf.ReturnRetfieMode); return DecodeResult.Success;
 
-                        case 0b_0001_0100: e.CALLW(); return DecodeResult.Success;
+                        case PicInstrucitonType.CALLW: e.CALLW(); return DecodeResult.Success;
 
-                        case 0b_0001_0101: e.EMULEN(); return DecodeResult.Success;
-                        case 0b_0001_0110: e.EMULDIS(); return DecodeResult.Success;
+                        case PicInstrucitonType.EMULEN: e.EMULEN(); return DecodeResult.Success;
+                        case PicInstrucitonType.EMULDIS: e.EMULDIS(); return DecodeResult.Success;
 
-                        case 0b_1111_0000:
-                        case 0b_1111_0001:
-                        case 0b_1111_0011:
-                        case 0b_1111_0010:
-                        case 0b_1111_0100:
-                        case 0b_1111_0101:
-                        case 0b_1111_0111:
-                        case 0b_1111_0110:
-                        case 0b_1111_1000:
-                        case 0b_1111_1001:
-                        case 0b_1111_1011:
-                        case 0b_1111_1010:
-                        case 0b_1111_1100:
-                        case 0b_1111_1101:
-                        case 0b_1111_1111:
-                        case 0b_1111_1110: e.RESET(); return DecodeResult.Success;
+                        case PicInstrucitonType.RESET: e.RESET(); return DecodeResult.Success;
 
                         default:
                             e.Unknown(buf.UnkHi, buf.UnkLo);
