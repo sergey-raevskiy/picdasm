@@ -357,7 +357,9 @@ namespace picdasm
 
         static readonly PicInstrucitonType[] s_hiMap = new PicInstrucitonType[256];
 
-        private static void Inst(byte bits, byte mask, PicInstrucitonType instr)
+        private static void MapInst(PicInstrucitonType[] map,
+                                    byte bits, byte mask,
+                                    PicInstrucitonType instr)
         {
             for (int i = 0; i < 256; i++)
             {
@@ -371,9 +373,14 @@ namespace picdasm
             }
         }
 
+        private static void Inst(byte bits, byte mask, PicInstrucitonType instr)
+        {
+            MapInst(s_hiMap, bits, mask, instr);
+        }
+
         private static void Inst(byte bits, PicInstrucitonType instr)
         {
-            Inst(bits, 0b_1111_1111, instr);
+            MapInst(s_hiMap, bits, 0b_1111_1111, instr);
         }
 
         static PicInstructionDecoder()
