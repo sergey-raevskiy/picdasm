@@ -244,13 +244,6 @@ namespace picdasm
         }
     }
 
-    enum DecodeResult
-    {
-        Success = 0,
-        SuccessLong = 1,
-        FetchLong = -1,
-    }
-
     enum PicInstrucitonType
     {
         // Special values
