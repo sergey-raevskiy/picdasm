@@ -3,6 +3,20 @@ using System.Collections.Generic;
 
 namespace picdasm
 {
+    class CurrentInstructionHandle
+    {
+        public int PC;
+        public PicInstructionBuf Buf;
+        public PicInstrucitonType InstructionType;
+    }
+
+    enum NextAction
+    {
+        Next,
+        Reset,
+        Completed,
+    }
+
     interface IPicInstructionExecutorNoDispatch
     {
         void Exec(int pc, PicInstructionBuf buf, PicInstrucitonType type);
@@ -15,144 +29,117 @@ namespace picdasm
             this.o = o;
         }
 
-        enum State
-        {
-            WaitXor,
-            WaitCheckZ,
-            WaitGoto,
-        }
-
         private class XorSwitchSeq
         {
             public byte literal;
             public int jumpAddr;
         }
 
-        State state;
-
-        int pc;
-        private int startPc;
-        private int endPc;
-        private List<XorSwitchSeq> seq = new List<XorSwitchSeq>();
         private readonly Writer o;
+        CurrentInstructionHandle h = new CurrentInstructionHandle();
+        IEnumerator<NextAction> iter;
 
         public void Exec(int pc, PicInstructionBuf buf, PicInstrucitonType type)
         {
-            this.pc = pc;
-            if (type == PicInstrucitonType.XORLW)
+            h.PC = pc;
+            h.Buf = buf;
+            h.InstructionType = type;
+
+            if (iter == null)
             {
-                XORLW(buf.Literal);
+                iter = QQ(h).GetEnumerator();
             }
-            else if (type == PicInstrucitonType.BZ)
+
+            if (!iter.MoveNext() || iter.Current == NextAction.Reset || iter.Current == NextAction.Completed)
             {
-                BZ(buf.ConditionalOffset);
-            }
-            else if (type == PicInstrucitonType.BTFSC)
-            {
-                BTFSC(buf.FileReg, buf.BitOpBit, buf.Access);
-            }
-            else if (type == PicInstrucitonType.BRA)
-            {
-                BRA(buf.BraRCallOffset);
-            }
-            else
-            {
-                ResetState();
+                iter = null;
             }
         }
 
-        protected void ResetState()
+        private void DumpSeq(List<XorSwitchSeq> seq, int startPc, int endPc)
         {
-            if (state == State.WaitXor && seq.Count > 0)
+            List<string> lines = new List<string>();
+
+            byte st = 0;
+            lines.Add("switch (W)");
+            lines.Add("{");
+            for (int i = 0; i < seq.Count;)
             {
-                List<string> lines = new List<string>();
+                var s = seq[i];
 
-                byte st = 0;
-                lines.Add("switch (W)");
-                lines.Add("{");
-                for (int i =0; i < seq.Count;)
+                if (i > 0)
+                    lines.Add(null);
+
+                while (i < seq.Count && seq[i].jumpAddr == s.jumpAddr)
                 {
-                    var s = seq[i];
+                    st ^= seq[i].literal;
+                    lines.Add(string.Format("case 0x{0:X2}:", st));
+                    i++;
+                }
 
-                    if (i>0)
-                        lines.Add(null);
+                lines[lines.Count - 1] += string.Format(" goto _0x{0:X5};", s.jumpAddr);
+            }
+            lines.Add("}");
+            lines.Add("/* default: */");
 
-                    while (i < seq.Count && seq[i].jumpAddr == s.jumpAddr)
+            o.Rewrite(startPc, endPc, lines.ToArray());
+            o.RefGoto(startPc);
+            o.RefGoto(endPc);
+        }
+
+        private IEnumerable<NextAction> QQ(CurrentInstructionHandle h)
+        {
+            int startPc = 0;
+            int endPc = 0;
+            List<XorSwitchSeq> seq = new List<XorSwitchSeq>();
+
+            while (true)
+            {
+                if (h.InstructionType == PicInstrucitonType.XORLW)
+                {
+                    if (seq.Count == 0)
+                        startPc = h.PC;
+                    seq.Add(new XorSwitchSeq() { literal = h.Buf.Literal });
+                    yield return NextAction.Next;
+                }
+                else
+                {
+                    if (seq.Count > 0)
                     {
-                        st ^= seq[i].literal;
-                        lines.Add(string.Format("case 0x{0:X2}:", st));
-                        i++;
+                        DumpSeq(seq, startPc, endPc);
                     }
 
-                    lines[lines.Count - 1] += string.Format(" goto _0x{0:X5};", s.jumpAddr);
+                    yield return NextAction.Reset;
                 }
-                lines.Add("}");
-                lines.Add("/* default: */");
 
-                o.Rewrite(startPc, endPc, lines.ToArray());
-                o.RefGoto(startPc);
-                o.RefGoto(endPc);
+                if (h.InstructionType == PicInstrucitonType.BZ)
+                {
+                    int addr = h.PC + 2 + 2 * h.Buf.ConditionalOffset;
+                    seq[seq.Count - 1].jumpAddr = addr;
+                    endPc = h.PC + 2;
+                    yield return NextAction.Next;
+                }
+                else if (h.InstructionType == PicInstrucitonType.BTFSC &&
+                         IsZeroBit(h.Buf.FileReg, h.Buf.BitOpBit, h.Buf.Access))
+                {
+                    yield return NextAction.Next;
 
-            }
-
-            seq.Clear();
-            state = State.WaitXor;
-        }
-
-        public void XORLW(byte literal)
-        {
-            if (state == State.WaitXor)
-            {
-                if (seq.Count == 0)
-                    startPc = pc;
-                seq.Add(new XorSwitchSeq() { literal = literal });
-                state = State.WaitCheckZ;
-            }
-            else
-            {
-                ResetState();
-            }
-        }
-
-        public void BZ(int off)
-        {
-            if (state == State.WaitCheckZ)
-            {
-                int addr = pc + 2 + 2 * off;
-                seq[seq.Count - 1].jumpAddr = addr;
-                state = State.WaitXor;
-                endPc = pc + 2;
-            }
-            else
-            {
-                ResetState();
-            }
-        }
-
-        public void BTFSC(byte addr, int bit, AccessMode access)
-        {
-            if (state == State.WaitCheckZ && IsZeroBit(addr, bit, access))
-            {
-                state = State.WaitGoto;
-            }
-            else
-            {
-                ResetState();
-            }
-        }
-
-        public void BRA(int off)
-        {
-            if (state == State.WaitGoto)
-            {
-                int addr = pc + 2 + 2 * off;
-                seq[seq.Count - 1].jumpAddr = addr;
-                state = State.WaitXor;
-                endPc = pc + 2;
-            }
-            else
-            {
-                ResetState();
+                    if (h.InstructionType == PicInstrucitonType.BRA)
+                    {
+                        int addr = h.PC + 2 + 2 * h.Buf.BraRCallOffset;
+                        seq[seq.Count - 1].jumpAddr = addr;
+                        endPc = h.PC + 2;
+                        yield return NextAction.Next;
+                    }
+                    else
+                    {
+                        yield return NextAction.Reset;
+                    }
+                }
+                else
+                {
+                    yield return NextAction.Reset;
+                }
             }
         }
 
