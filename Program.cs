@@ -17,17 +17,16 @@ namespace picdasm
 
                 ctx.Fetch(buf);
 
-                DecodeResult rc = dec.Decode(buf);
-                if (rc == DecodeResult.FetchLong)
+                PicInstrucitonType instr = dec.Decode(buf);
+                if (instr > PicInstrucitonType.LongStart)
                 {
                     ctx.FetchLong(buf);
-                    rc = dec.Decode(buf);
-                    Debug.Assert(rc == DecodeResult.SuccessLong);
+                    Driver.Drive(buf, instr, qq);
                     ctx.PC += 4;
                 }
                 else
                 {
-                    Debug.Assert(rc == DecodeResult.Success);
+                    Driver.Drive(buf, instr, qq);
                     ctx.PC += 2;
                 }
             }
