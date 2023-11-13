@@ -17,17 +17,17 @@ namespace picdasm
 
                 ctx.Fetch(buf);
 
-                int rc = dec.Decode(buf);
-                if (rc == 3)
+                DecodeResult rc = dec.Decode(buf);
+                if (rc == DecodeResult.FetchLong)
                 {
                     ctx.FetchLong(buf);
                     rc = dec.Decode(buf);
-                    Debug.Assert(rc == 4);
+                    Debug.Assert(rc == DecodeResult.SuccessLong);
                     ctx.PC += 4;
                 }
                 else
                 {
-                    Debug.Assert(rc == 2);
+                    Debug.Assert(rc == DecodeResult.Success);
                     ctx.PC += 2;
                 }
             }
