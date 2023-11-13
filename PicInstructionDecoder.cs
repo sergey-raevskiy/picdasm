@@ -246,6 +246,7 @@ namespace picdasm
         Unknown = 0, // byte hiByte, byte loByte
 
         // Miscellaneous instructions
+        NOP,
         SLEEP,
         CLRWDT,
         PUSH,
