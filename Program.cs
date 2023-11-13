@@ -23,13 +23,13 @@ namespace picdasm
                     ctx.FetchLong(buf);
                     rc = dec.Decode(buf);
                     Debug.Assert(rc == 4);
+                    ctx.PC += 4;
                 }
                 else
                 {
                     Debug.Assert(rc == 2);
+                    ctx.PC += 2;
                 }
-
-                ctx.PC += rc;
             }
         }
 
