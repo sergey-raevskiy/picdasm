@@ -3,41 +3,35 @@ using System.Collections.Generic;
 
 namespace picdasm
 {
-    class CurrentInstructionHandle
-    {
-        public int PC;
-        public PicInstructionBuf Buf;
-        public PicInstrucitonType InstructionType;
-    }
-
-    enum NextAction
-    {
-        Next,
-        Reset,
-        Completed,
-    }
-
     interface IPicInstructionExecutorNoDispatch
     {
         void Exec(int pc, PicInstructionBuf buf, PicInstrucitonType type);
     }
 
-    class XorSwitchMetaInstructionProcessor : IPicInstructionExecutorNoDispatch
+    abstract class MetaInstructionProcessorBase2 : IPicInstructionExecutorNoDispatch
     {
-        public XorSwitchMetaInstructionProcessor(Writer o)
+        protected class CurrentInstructionHandle
         {
-            this.o = o;
+            public int PC;
+            public PicInstructionBuf Buf;
+            public PicInstrucitonType InstructionType;
         }
 
-        private class XorSwitchSeq
+        protected enum NextAction
         {
-            public byte literal;
-            public int jumpAddr;
+            Next,
+            Reset,
+            Completed,
         }
 
-        private readonly Writer o;
         CurrentInstructionHandle h = new CurrentInstructionHandle();
         IEnumerator<NextAction> iter;
+
+        protected MetaInstructionProcessorBase2()
+        {
+        }
+
+        protected abstract IEnumerable<NextAction> QQ(CurrentInstructionHandle h);
 
         public void Exec(int pc, PicInstructionBuf buf, PicInstrucitonType type)
         {
@@ -55,7 +49,23 @@ namespace picdasm
                 iter = null;
             }
         }
+    }
 
+    class XorSwitchMetaInstructionProcessor : MetaInstructionProcessorBase2
+    {
+        public XorSwitchMetaInstructionProcessor(Writer o)
+        {
+            this.o = o;
+        }
+
+        private class XorSwitchSeq
+        {
+            public byte literal;
+            public int jumpAddr;
+        }
+
+        private readonly Writer o;
+        
         private void DumpSeq(List<XorSwitchSeq> seq, int startPc, int endPc)
         {
             List<string> lines = new List<string>();
@@ -87,7 +97,7 @@ namespace picdasm
             o.RefGoto(endPc);
         }
 
-        private IEnumerable<NextAction> QQ(CurrentInstructionHandle h)
+        override protected IEnumerable<NextAction> QQ(CurrentInstructionHandle h)
         {
             int startPc = 0;
             int endPc = 0;
