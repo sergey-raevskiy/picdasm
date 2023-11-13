@@ -148,6 +148,14 @@ namespace picdasm
         public byte loByte;
         public byte exHi;
         public byte exLo;
+        public bool exValid;
+
+        public void Reset()
+        {
+            exHi = 0;
+            exLo = 0;
+            exValid = false;
+        }
 
         //public PicInstrucitonType Instruction;
 
@@ -289,21 +297,15 @@ namespace picdasm
 
     class PicInstructionDecoder
     {
-        public IPicInstructionFetcher fetcher;
         public IPicInstructionExecutor e;
 
-        public PicInstructionDecoder(IPicInstructionFetcher fetcher,
-                                     IPicInstructionExecutor e)
+        public PicInstructionDecoder(IPicInstructionExecutor e)
         {
-            this.fetcher = fetcher;
             this.e = e;
         }
 
-        public int DecodeAt()
+        public int Decode(PicInstructionBuf buf)
         {
-            PicInstructionBuf buf = new PicInstructionBuf();
-            fetcher.FetchInstruciton(out buf.hiByte, out buf.loByte);
-
             switch (buf.hiByte)
             {
                 // Miscellaneous instructions
@@ -588,7 +590,7 @@ namespace picdasm
                 case 0b_1100_1110:
                 case 0b_1100_1111:
                     {
-                        fetcher.FetchInstruciton(out buf.exHi, out buf.exLo);
+                        if (!buf.exValid) return 3;
 
                         e.MOVFF(buf.MovffSource, buf.MovffDest);
                         return 4;
@@ -663,7 +665,7 @@ namespace picdasm
                 case 0b_1110_1011:
                     {
                         byte src = (byte)(buf.loByte & 0x7f);
-                        fetcher.FetchInstruciton(out buf.exHi, out buf.exLo);
+                        if (!buf.exValid) return 3;
 
                         if ((buf.loByte & 0x80) == 0)
                         {
@@ -681,7 +683,7 @@ namespace picdasm
                 case 0b_1110_1100:
                 case 0b_1110_1101:
                     {
-                        fetcher.FetchInstruciton(out buf.exHi, out buf.exLo);
+                        if (!buf.exValid) return 3;
 
                         //if ((exHi & 0xf0) != 0xf0)
                         //    goto unknown;
@@ -695,7 +697,7 @@ namespace picdasm
                         //if ((buf.loByte & 0xC0) != 0)
                         //    goto unknown;
 
-                        fetcher.FetchInstruciton(out buf.exHi, out buf.exLo);
+                        if (!buf.exValid) return 3;
 
                         //if (exHi  != 0xf0)
                         //    goto unknown;
@@ -706,7 +708,7 @@ namespace picdasm
                 // GOTO k
                 case 0b_1110_1111:
                     {
-                        fetcher.FetchInstruciton(out buf.exHi, out buf.exLo);
+                        if (!buf.exValid) return 3;
 
                         //if ((exHi & 0xf0) != 0xf0)
                         //    goto unknown;

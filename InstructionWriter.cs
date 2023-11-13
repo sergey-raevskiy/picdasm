@@ -186,7 +186,7 @@ namespace picdasm
 
         public void BRA(int off)
         {
-            int addr = c.PC + 2 * off;
+            int addr = o.PC + 2 + 2 * off;
             o.WriteLine("goto _0x{0:X5};", addr);
             o.PreSpace();
             o.RefGoto(addr);
@@ -194,14 +194,14 @@ namespace picdasm
 
         public void RCALL(int off)
         {
-            int addr = c.PC + 2*off;
+            int addr = o.PC + 2 + 2*off;
             o.WriteLine("_FUNC_(0x{0:X5});", addr);
             o.RefCall(addr);
         }
 
         public void BZ(int off)
         {
-            int addr = (c.PC + 2 * off);
+            int addr = (o.PC + 2 + 2 * off);
             o.WriteLine("if (Z) goto _0x{0:X5};", addr);
             o.PreSpace();
             o.RefGoto(addr);
@@ -209,7 +209,7 @@ namespace picdasm
 
         public void BNZ(int off)
         {
-            int addr = (c.PC + 2 * off);
+            int addr = (o.PC + 2 + 2 * off);
             o.WriteLine("if (!Z) goto _0x{0:X5};", addr);
             o.PreSpace();
             o.RefGoto(addr);
@@ -217,7 +217,7 @@ namespace picdasm
 
         public void BC(int off)
         {
-            int addr = (c.PC + 2 * off);
+            int addr = (o.PC + 2 + 2 * off);
             o.WriteLine("if (C) goto _0x{0:X5};", addr);
             o.PreSpace();
             o.RefGoto(addr);
@@ -225,7 +225,7 @@ namespace picdasm
 
         public void BNC(int off)
         {
-            int addr = (c.PC + 2 * off);
+            int addr = (o.PC + 2 + 2 * off);
             o.WriteLine("if (!C) goto _0x{0:X5};", addr);
             o.PreSpace();
             o.RefGoto(addr);
@@ -233,7 +233,7 @@ namespace picdasm
 
         public void BOV(int off)
         {
-            int addr = (c.PC + 2 * off);
+            int addr = (o.PC + 2 + 2 * off);
             o.WriteLine("if (O) goto _0x{0:X5};", addr);
             o.PreSpace();
             o.RefGoto(addr);
@@ -241,7 +241,7 @@ namespace picdasm
 
         public void BNOV(int off)
         {
-            int addr = (c.PC + 2 * off);
+            int addr = (o.PC + 2 + 2 * off);
             o.WriteLine("if (!O) goto _0x{0:X5};", addr);
             o.PreSpace();
             o.RefGoto(addr);
@@ -249,7 +249,7 @@ namespace picdasm
 
         public void BN(int off)
         {
-            int addr = (c.PC + 2 * off);
+            int addr = (o.PC + 2 + 2 * off);
             o.WriteLine("if (N) goto _0x{0:X5};", addr);
             o.PreSpace();
             o.RefGoto(addr);
@@ -257,7 +257,7 @@ namespace picdasm
 
         public void BNN(int off)
         {
-            int addr = (c.PC + 2 * off);
+            int addr = (o.PC + 2 + 2 * off);
             o.WriteLine("if (!N) goto _0x{0:X5};", addr);
             o.PreSpace();
             o.RefGoto(addr);

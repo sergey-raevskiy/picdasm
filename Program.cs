@@ -8,12 +8,28 @@ namespace picdasm
     {
         private static void DisasmCore(byte[] prog, Context ctx, IPicInstructionExecutor qq)
         {
-            var dec = new PicInstructionDecoder(ctx, qq);
+            var dec = new PicInstructionDecoder(qq);
+            PicInstructionBuf buf = new PicInstructionBuf();
 
             while (ctx.PC < prog.Length)
             {
                 qq.SetPc(ctx.PC);
-                dec.DecodeAt();
+
+                ctx.Fetch(buf);
+
+                int rc = dec.Decode(buf);
+                if (rc == 3)
+                {
+                    ctx.FetchLong(buf);
+                    rc = dec.Decode(buf);
+                    Debug.Assert(rc == 4);
+                }
+                else
+                {
+                    Debug.Assert(rc == 2);
+                }
+
+                ctx.PC += rc;
             }
         }
 
@@ -24,11 +40,11 @@ namespace picdasm
 
             DisasmCore(prog, ctx, qq);
 
-            ctx.PC = 0;
+            ctx = new Context(prog);    
             var qq2 = new XorSwitchMetaInstructionProcessor(qq.o);
             DisasmCore(prog, ctx, qq2);
 
-            ctx.PC = 0;
+            ctx = new Context(prog);
             var qq3 = new ImmediateSwitchInstructionProcessor(qq.o);
             DisasmCore(prog, ctx, qq3);
 

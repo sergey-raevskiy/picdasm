@@ -1,6 +1,6 @@
 ﻿namespace picdasm
 {
-    class Context : IPicInstructionFetcher
+    class Context
     {
         private byte[] progmem;
         public int PC { get; set; }
@@ -10,11 +10,20 @@
             this.progmem = progmem;
         }
 
-        public void FetchInstruciton(out byte hi, out byte lo)
+        public void Fetch(PicInstructionBuf buf)
         {
-            hi = progmem[PC + 1];
-            lo = progmem[PC];
-            PC += 2;
+            buf.hiByte = progmem[PC + 1];
+            buf.loByte = progmem[PC];
+            buf.exValid = false;
+        }
+
+        public void FetchLong(PicInstructionBuf buf)
+        {
+            buf.hiByte = progmem[PC + 1];
+            buf.loByte = progmem[PC];
+            buf.exHi = progmem[PC + 3];
+            buf.exLo = progmem[PC + 2];
+            buf.exValid = true;
         }
     }
 }

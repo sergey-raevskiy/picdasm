@@ -51,7 +51,6 @@
     <Compile Include="IntelHexRecordDumper.cs" />
     <Compile Include="IntelHexRecordParser.cs" />
     <Compile Include="IntelHexRecordBuf.cs" />
-    <Compile Include="IPicInstructionFetcher.cs" />
     <Compile Include="XorSwitchMetaInstructionProcessor.cs" />
     <Compile Include="MetaInstructionProcessorBase.cs" />
     <Compile Include="Pic18Sfr.cs" />
