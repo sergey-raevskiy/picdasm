@@ -44,11 +44,11 @@ namespace picdasm
 
             if (isLong)
             {
-                result = string.Format("{{0:X2}{1:X2} {2:X2}{3:X2}}", hiByte, loByte, exHi, exLo);
+                result = string.Format("{0:X2}{1:X2} {2:X2}{3:X2}", hiByte, loByte, exHi, exLo);
             }
             else
             {
-                result = string.Format("{{0:X2}{1:X2}}", hiByte, loByte);
+                result = string.Format("{0:X2}{1:X2}", hiByte, loByte);
             }
 
             return result;
@@ -120,46 +120,13 @@ namespace picdasm
             }
         }
 
-        public int CallGotoAddr
-        {
-            get
-            {
-                return ((exHi & 0xf) << 16) | (exLo << 8) | loByte;
-            }
-        }
+        public int CallGotoAddr => ((exHi & 0xf) << 16) | (exLo << 8) | loByte;
 
-        public int MovffSource
-        {
-            get
-            {
-                return ((hiByte & 0xf) << 8) | loByte;
-            }
-        }
+        public int MovffSource => ((hiByte & 0xf) << 8) | loByte;
+        public int MovffDest => ((exHi & 0xf) << 8) | exLo;
 
-        public int MovffDest
-        {
-            get
-            {
-                return ((exHi & 0xf) << 8) | exLo;
-            }
-        }
-
-        public int ConditionalOffset
-        {
-            get
-            {
-                sbyte tmp = (sbyte)loByte;
-                return tmp;
-            }
-        }
-
-        public int BitOpBit
-        {
-            get
-            {
-                return (hiByte & 0xE) >> 1;
-            }
-        }
+        public int ConditionalOffset => (sbyte)loByte;
+        public int BitOpBit => (hiByte & 0xE) >> 1;
 
         private static CallReturnOpMode CallReturnMode(byte iByte)
         {
@@ -175,56 +142,19 @@ namespace picdasm
             }
         }
 
-        public CallReturnOpMode CallMode
-        {
-            get
-            {
-                return CallReturnMode(hiByte);
-            }
-        }
+        public CallReturnOpMode CallMode => CallReturnMode(hiByte);
+        public CallReturnOpMode ReturnRetfieMode => CallReturnMode(loByte);
 
-        public CallReturnOpMode ReturnRetfieMode
-        {
-            get
-            {
-                return CallReturnMode(loByte);
-            }
-        }
+        public byte UnkHi => hiByte;
+        public byte UnkLo => loByte;
 
-        public byte UnkHi
-        {
-            get { return hiByte; }
-        }
+        public byte NopExHi => hiByte;
+        public byte NopExLo => loByte;
 
-        public byte UnkLo
-        {
-            get { return loByte; }
-        }
+        public int Bank => loByte & 0x0f;
 
-        public byte NopExHi
-        {
-            get { return hiByte; }
-        }
-
-        public byte NopExLo
-        {
-            get { return loByte; }
-        }
-
-        public int Bank
-        {
-            get { return loByte & 0x0f; }
-        }
-
-        public byte Literal
-        {
-            get { return loByte; }
-        }
-
-        public byte FileReg
-        {
-            get { return loByte; }
-        }
+        public byte Literal => loByte;
+        public byte FileReg => loByte;
 
         public int FsrN => loByte >> 6;
         public int FsrLiteral => loByte & 0x3f;
@@ -235,13 +165,7 @@ namespace picdasm
         public int MovssSrc => loByte & 0x7f;
         public int MovssDst => exLo & 0x7f;
 
-        public int MovsfFileReg
-        {
-            get
-            {
-                return ((exHi & 0xf) << 8) | exLo;
-            }
-        }
+        public int MovsfFileReg => ((exHi & 0xf) << 8) | exLo;
     }
 
     enum PicInstrucitonType
