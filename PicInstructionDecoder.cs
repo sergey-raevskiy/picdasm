@@ -142,100 +142,124 @@ namespace picdasm
         void Unknown(byte hiByte, byte loByte);
     }
 
-    class PicInstructionDecoder
+    class PicInstructionBuf
     {
-        private IPicInstructionFetcher fetcher;
-        private IPicInstructionExecutor e;
+        public byte hiByte;
+        public byte loByte;
+        public byte exHi;
+        public byte exLo;
 
-        public PicInstructionDecoder(IPicInstructionFetcher fetcher,
-                                     IPicInstructionExecutor e)
-        {
-            this.fetcher = fetcher;
-            this.e = e;
-        }
+        //public PicInstrucitonType Instruction;
 
-        private static AccessMode Access(byte hiByte)
+        public AccessMode Access
         {
-            byte access = (byte)(hiByte & 0x01);
-            switch (access)
+            get
             {
-                case (byte)AccessMode.Access:
-                case (byte)AccessMode.Banked:
-                    return (AccessMode)access;
+                byte access = (byte)(hiByte & 0x01);
+                switch (access)
+                {
+                    case (byte)AccessMode.Access:
+                    case (byte)AccessMode.Banked:
+                        return (AccessMode)access;
 
-                default:
-                    throw new InvalidOperationException();
+                    default:
+                        throw new InvalidOperationException();
+                }
             }
         }
 
-        private static DestinationMode Destination(byte hiByte)
+        public DestinationMode Destination
         {
-            byte dest = (byte)(hiByte & 0x02);
-            switch (dest)
+            get
             {
-                case (byte)DestinationMode.W:
-                case (byte)DestinationMode.F:
-                    return (DestinationMode)dest;
+                byte dest = (byte)(hiByte & 0x02);
+                switch (dest)
+                {
+                    case (byte)DestinationMode.W:
+                    case (byte)DestinationMode.F:
+                        return (DestinationMode)dest;
 
-                default:
-                    throw new InvalidOperationException();
+                    default:
+                        throw new InvalidOperationException();
+                }
             }
         }
 
-        private static TableOpMode TableMode(byte loByte)
+        public TableOpMode TableMode
         {
-            byte mode = (byte)(loByte & 0x3);
+            get
+            {
+                byte mode = (byte)(loByte & 0x3);
+                switch (mode)
+                {
+                    case (byte)TableOpMode.None:
+                    case (byte)TableOpMode.PostIncrement:
+                    case (byte)TableOpMode.PostDecrement:
+                    case (byte)TableOpMode.PreIncrement:
+                        return (TableOpMode)mode;
+
+                    default:
+                        throw new InvalidOperationException();
+                }
+            }
+        }
+
+        public int BraRCallOffset
+        {
+            get
+            {
+                short tmp = (short)((hiByte << 8) | loByte);
+                tmp <<= 5;
+                tmp >>= 5;
+                return tmp;
+            }
+        }
+
+        public int CallGotoAddr
+        {
+            get
+            {
+                return ((exHi & 0xf) << 16) | (exLo << 8) | loByte;
+            }
+        }
+
+        public int MovffSource
+        {
+            get
+            {
+                return ((hiByte & 0xf) << 8) | loByte;
+            }
+        }
+
+        public int MovffDest
+        {
+            get
+            {
+                return ((exHi & 0xf) << 8) | exLo;
+            }
+        }
+
+        public int ConditionalOffset
+        {
+            get
+            {
+                sbyte tmp = (sbyte)loByte;
+                return tmp;
+            }
+        }
+
+        public int BitOpBit
+        {
+            get
+            {
+                return (hiByte & 0xE) >> 1;
+            }
+        }
+
+        private static CallReturnOpMode CallReturnMode(byte iByte)
+        {
+            byte mode = (byte)(iByte & 1);
             switch (mode)
-            {
-                case (byte)TableOpMode.None:
-                case (byte)TableOpMode.PostIncrement:
-                case (byte)TableOpMode.PostDecrement:
-                case (byte)TableOpMode.PreIncrement:
-                    return (TableOpMode)mode;
-
-                default:
-                    throw new InvalidOperationException();
-            }
-        }
-
-        private static int BraRCallOffset(byte hiByte, byte loByte)
-        {
-            short tmp = (short)((hiByte << 8) | loByte);
-            tmp <<= 5;
-            tmp >>= 5;
-            return tmp;
-        }
-
-        private static int CallGotoAddr(byte loByte, byte exHi, byte exLo)
-        {
-            return ((exHi & 0xf) << 16) | (exLo << 8) | loByte;
-        }
-
-        private int MovffSource(byte hiByte, byte loByte)
-        {
-            return ((hiByte & 0xf) << 8) | loByte;
-        }
-
-        private int MovffDest(byte exHi, byte exLo)
-        {
-            return ((exHi & 0xf) << 8) | exLo;
-        }
-
-        private int ConditionalOffset(byte loByte)
-        {
-            sbyte tmp = (sbyte)loByte;
-            return tmp;
-        }
-
-        private int BitOpBit(byte hiByte)
-        {
-            return (hiByte & 0xE) >> 1;
-        }
-
-        static CallReturnOpMode CallReturnMode(byte iByte)
-        {
-            byte mode = (byte) (iByte & 1);
-            switch(mode)
             {
                 case (byte)CallReturnOpMode.Fast:
                 case (byte)CallReturnOpMode.Slow:
@@ -246,20 +270,47 @@ namespace picdasm
             }
         }
 
+        public CallReturnOpMode CallMode
+        {
+            get
+            {
+                return CallReturnMode(hiByte);
+            }
+        }
+
+        public CallReturnOpMode ReturnRetfieMode
+        {
+            get
+            {
+                return CallReturnMode(loByte);
+            }
+        }
+    }
+
+    class PicInstructionDecoder
+    {
+        public IPicInstructionFetcher fetcher;
+        public IPicInstructionExecutor e;
+
+        public PicInstructionDecoder(IPicInstructionFetcher fetcher,
+                                     IPicInstructionExecutor e)
+        {
+            this.fetcher = fetcher;
+            this.e = e;
+        }
+
         public int DecodeAt()
         {
-            byte hiByte;
-            byte loByte;
+            PicInstructionBuf buf = new PicInstructionBuf();
+            fetcher.FetchInstruciton(out buf.hiByte, out buf.loByte);
 
-            fetcher.FetchInstruciton(out hiByte, out loByte);
-
-            switch (hiByte)
+            switch (buf.hiByte)
             {
                 // Miscellaneous instructions
                 // 0b_0000_0000 opcode
 
                 case 0b_0000_0000:
-                    switch (loByte)
+                    switch (buf.loByte)
                     {
                         case 0b_0000_0000: e.NOP(); return 2;
                         case 0b_0000_0011: e.SLEEP(); return 2;
@@ -271,16 +322,16 @@ namespace picdasm
                         case 0b_0000_1000:
                         case 0b_0000_1001:
                         case 0b_0000_1010:
-                        case 0b_0000_1011: e.TBLRD(TableMode(loByte)); return 2;
+                        case 0b_0000_1011: e.TBLRD(buf.TableMode); return 2;
                         case 0b_0000_1100:
                         case 0b_0000_1101:
                         case 0b_0000_1110:
-                        case 0b_0000_1111: e.TBLWT(TableMode(loByte)); return 2;
+                        case 0b_0000_1111: e.TBLWT(buf.TableMode); return 2;
 
                         case 0b_0001_0000:
-                        case 0b_0001_0001: e.RETFIE(CallReturnMode(loByte)); return 2;
+                        case 0b_0001_0001: e.RETFIE(buf.ReturnRetfieMode); return 2;
                         case 0b_0001_0010:
-                        case 0b_0001_0011: e.RETURN(CallReturnMode(loByte)); return 2;
+                        case 0b_0001_0011: e.RETURN(buf.ReturnRetfieMode); return 2;
 
                         case 0b_0001_0100: e.CALLW(); return 2;
 
@@ -309,130 +360,130 @@ namespace picdasm
 
                 // MOVLB
                 case 0b_0000_0001:
-                    //if ((loByte & 0xf0) != 0)
+                    //if ((buf.loByte & 0xf0) != 0)
                     //    goto unknown;
-                    e.MOVLB(loByte & 0x0f);
+                    e.MOVLB(buf.loByte & 0x0f);
                     return 2;
 
                 // Literal operations: W ← OP(k,W)
                 // 0b_0000_1ooo k
 
-                case 0b_0000_1000: e.SUBLW(loByte); return 2;
-                case 0b_0000_1001: e.IORLW(loByte); return 2;
-                case 0b_0000_1010: e.XORLW(loByte); return 2;
-                case 0b_0000_1011: e.ANDLW(loByte); return 2;
-                case 0b_0000_1100: e.RETLW(loByte); return 2;
-                case 0b_0000_1101: e.MULLW(loByte); return 2;
-                case 0b_0000_1110: e.MOVLW(loByte); return 2;
-                case 0b_0000_1111: e.ADDLW(loByte); return 2;
+                case 0b_0000_1000: e.SUBLW(buf.loByte); return 2;
+                case 0b_0000_1001: e.IORLW(buf.loByte); return 2;
+                case 0b_0000_1010: e.XORLW(buf.loByte); return 2;
+                case 0b_0000_1011: e.ANDLW(buf.loByte); return 2;
+                case 0b_0000_1100: e.RETLW(buf.loByte); return 2;
+                case 0b_0000_1101: e.MULLW(buf.loByte); return 2;
+                case 0b_0000_1110: e.MOVLW(buf.loByte); return 2;
+                case 0b_0000_1111: e.ADDLW(buf.loByte); return 2;
 
                 // register ALU operations: dest ← OP(f,W)
                 // 0b_0ooo_ooda 
                 case 0b_0000_0010: // no MULWF with d = 0
-                case 0b_0000_0011: e.MULWF(loByte, Access(hiByte)); return 2;
+                case 0b_0000_0011: e.MULWF(buf.loByte, buf.Access); return 2;
                 case 0b_0000_0100:
                 case 0b_0000_0101:
                 case 0b_0000_0110:
-                case 0b_0000_0111: e.DECF(loByte, Destination(hiByte), Access(hiByte)); return 2;
+                case 0b_0000_0111: e.DECF(buf.loByte, buf.Destination, buf.Access); return 2;
                 case 0b_0001_0000:
                 case 0b_0001_0001:
                 case 0b_0001_0010:
-                case 0b_0001_0011: e.IORWF(loByte, Destination(hiByte), Access(hiByte)); return 2;
+                case 0b_0001_0011: e.IORWF(buf.loByte, buf.Destination, buf.Access); return 2;
                 case 0b_0001_0100:
                 case 0b_0001_0101:
                 case 0b_0001_0110:
-                case 0b_0001_0111: e.ANDWF(loByte, Destination(hiByte), Access(hiByte)); return 2;
+                case 0b_0001_0111: e.ANDWF(buf.loByte, buf.Destination, buf.Access); return 2;
                 case 0b_0001_1000:
                 case 0b_0001_1001:
                 case 0b_0001_1010:
-                case 0b_0001_1011: e.XORWF(loByte, Destination(hiByte), Access(hiByte)); return 2;
+                case 0b_0001_1011: e.XORWF(buf.loByte, buf.Destination, buf.Access); return 2;
                 case 0b_0001_1100:
                 case 0b_0001_1101:
                 case 0b_0001_1110:
-                case 0b_0001_1111: e.COMF(loByte, Destination(hiByte), Access(hiByte)); return 2;
+                case 0b_0001_1111: e.COMF(buf.loByte, buf.Destination, buf.Access); return 2;
                 case 0b_0010_0000:
                 case 0b_0010_0001:
                 case 0b_0010_0010:
-                case 0b_0010_0011: e.ADDWFC(loByte, Destination(hiByte), Access(hiByte)); return 2;
+                case 0b_0010_0011: e.ADDWFC(buf.loByte, buf.Destination, buf.Access); return 2;
                 case 0b_0010_0100:
                 case 0b_0010_0101:
                 case 0b_0010_0110:
-                case 0b_0010_0111: e.ADDWF(loByte, Destination(hiByte), Access(hiByte)); return 2;
+                case 0b_0010_0111: e.ADDWF(buf.loByte, buf.Destination, buf.Access); return 2;
                 case 0b_0010_1000:
                 case 0b_0010_1001:
                 case 0b_0010_1010:
-                case 0b_0010_1011: e.INCF(loByte, Destination(hiByte), Access(hiByte)); return 2;
+                case 0b_0010_1011: e.INCF(buf.loByte, buf.Destination, buf.Access); return 2;
                 case 0b_0010_1100:
                 case 0b_0010_1101:
                 case 0b_0010_1110:
-                case 0b_0010_1111: e.DECFSZ(loByte, Destination(hiByte), Access(hiByte)); return 2;
+                case 0b_0010_1111: e.DECFSZ(buf.loByte, buf.Destination, buf.Access); return 2;
                 case 0b_0011_0000:
                 case 0b_0011_0001:
                 case 0b_0011_0010:
-                case 0b_0011_0011: e.RRCF(loByte, Destination(hiByte), Access(hiByte)); return 2;
+                case 0b_0011_0011: e.RRCF(buf.loByte, buf.Destination, buf.Access); return 2;
                 case 0b_0011_0100:
                 case 0b_0011_0101:
                 case 0b_0011_0110:
-                case 0b_0011_0111: e.RLCF(loByte, Destination(hiByte), Access(hiByte)); return 2;
+                case 0b_0011_0111: e.RLCF(buf.loByte, buf.Destination, buf.Access); return 2;
                 case 0b_0011_1000:
                 case 0b_0011_1001:
                 case 0b_0011_1010:
-                case 0b_0011_1011: e.SWAPF(loByte, Destination(hiByte), Access(hiByte)); return 2;
+                case 0b_0011_1011: e.SWAPF(buf.loByte, buf.Destination, buf.Access); return 2;
                 case 0b_0011_1100:
                 case 0b_0011_1101:
                 case 0b_0011_1110:
-                case 0b_0011_1111: e.INCFSZ(loByte, Destination(hiByte), Access(hiByte)); return 2;
+                case 0b_0011_1111: e.INCFSZ(buf.loByte, buf.Destination, buf.Access); return 2;
                 case 0b_0100_0000:
                 case 0b_0100_0001:
                 case 0b_0100_0010:
-                case 0b_0100_0011: e.RRNCF(loByte, Destination(hiByte), Access(hiByte)); return 2;
+                case 0b_0100_0011: e.RRNCF(buf.loByte, buf.Destination, buf.Access); return 2;
                 case 0b_0100_0100:
                 case 0b_0100_0101:
                 case 0b_0100_0110:
-                case 0b_0100_0111: e.RLNCF(loByte, Destination(hiByte), Access(hiByte)); return 2;
+                case 0b_0100_0111: e.RLNCF(buf.loByte, buf.Destination, buf.Access); return 2;
                 case 0b_0100_1000:
                 case 0b_0100_1001:
                 case 0b_0100_1010:
-                case 0b_0100_1011: e.INFSNZ(loByte, Destination(hiByte), Access(hiByte)); return 2;
+                case 0b_0100_1011: e.INFSNZ(buf.loByte, buf.Destination, buf.Access); return 2;
                 case 0b_0100_1100:
                 case 0b_0100_1101:
                 case 0b_0100_1110:
-                case 0b_0100_1111: e.DCFSNZ(loByte, Destination(hiByte), Access(hiByte)); return 2;
+                case 0b_0100_1111: e.DCFSNZ(buf.loByte, buf.Destination, buf.Access); return 2;
                 case 0b_0101_0000:
                 case 0b_0101_0001:
                 case 0b_0101_0010:
-                case 0b_0101_0011: e.MOVF(loByte, Destination(hiByte), Access(hiByte)); return 2;
+                case 0b_0101_0011: e.MOVF(buf.loByte, buf.Destination, buf.Access); return 2;
                 case 0b_0101_0100:
                 case 0b_0101_0101:
                 case 0b_0101_0110:
-                case 0b_0101_0111: e.SUBFWB(loByte, Destination(hiByte), Access(hiByte)); return 2;
+                case 0b_0101_0111: e.SUBFWB(buf.loByte, buf.Destination, buf.Access); return 2;
                 case 0b_0101_1000:
                 case 0b_0101_1001:
                 case 0b_0101_1010:
-                case 0b_0101_1011: e.SUBWFB(loByte, Destination(hiByte), Access(hiByte)); return 2;
+                case 0b_0101_1011: e.SUBWFB(buf.loByte, buf.Destination, buf.Access); return 2;
                 case 0b_0101_1100:
                 case 0b_0101_1101:
                 case 0b_0101_1110:
-                case 0b_0101_1111: e.SUBWF(loByte, Destination(hiByte), Access(hiByte)); return 2;
+                case 0b_0101_1111: e.SUBWF(buf.loByte, buf.Destination, buf.Access); return 2;
 
                 // register ALU operations, do not write to W
                 // 0b_0110_oooa f
                 case 0b_0110_0000:
-                case 0b_0110_0001: e.CPFSLT(loByte, Access(hiByte)); return 2;
+                case 0b_0110_0001: e.CPFSLT(buf.loByte, buf.Access); return 2;
                 case 0b_0110_0010:
-                case 0b_0110_0011: e.CPFSEQ(loByte, Access(hiByte)); return 2;
+                case 0b_0110_0011: e.CPFSEQ(buf.loByte, buf.Access); return 2;
                 case 0b_0110_0100:
-                case 0b_0110_0101: e.CPFSGT(loByte, Access(hiByte)); return 2;
+                case 0b_0110_0101: e.CPFSGT(buf.loByte, buf.Access); return 2;
                 case 0b_0110_0110:
-                case 0b_0110_0111: e.TSTFSZ(loByte, Access(hiByte)); return 2;
+                case 0b_0110_0111: e.TSTFSZ(buf.loByte, buf.Access); return 2;
                 case 0b_0110_1000:
-                case 0b_0110_1001: e.SETF(loByte, Access(hiByte)); return 2;
+                case 0b_0110_1001: e.SETF(buf.loByte, buf.Access); return 2;
                 case 0b_0110_1010:
-                case 0b_0110_1011: e.CLRF(loByte, Access(hiByte)); return 2;
+                case 0b_0110_1011: e.CLRF(buf.loByte, buf.Access); return 2;
                 case 0b_0110_1100:
-                case 0b_0110_1101: e.NEGF(loByte, Access(hiByte)); return 2;
+                case 0b_0110_1101: e.NEGF(buf.loByte, buf.Access); return 2;
                 case 0b_0110_1110:
-                case 0b_0110_1111: e.MOVWF(loByte, Access(hiByte)); return 2;
+                case 0b_0110_1111: e.MOVWF(buf.loByte, buf.Access); return 2;
 
                 // 0b_0111_bbba BTG f,b,a Toggle bit b of f
                 case 0b_0111_0000:
@@ -450,7 +501,7 @@ namespace picdasm
                 case 0b_0111_1100:
                 case 0b_0111_1101:
                 case 0b_0111_1110:
-                case 0b_0111_1111: e.BTG(loByte, BitOpBit(hiByte), Access(hiByte)); return 2;
+                case 0b_0111_1111: e.BTG(buf.loByte, buf.BitOpBit, buf.Access); return 2;
 
                 // register Bit operations
                 // 0b_10oo_bbba 
@@ -469,7 +520,7 @@ namespace picdasm
                 case 0b_1000_1100:
                 case 0b_1000_1101:
                 case 0b_1000_1110:
-                case 0b_1000_1111: e.BSF(loByte, BitOpBit(hiByte), Access(hiByte)); return 2;
+                case 0b_1000_1111: e.BSF(buf.loByte, buf.BitOpBit, buf.Access); return 2;
                 case 0b_1001_0000:
                 case 0b_1001_0001:
                 case 0b_1001_0010:
@@ -485,7 +536,7 @@ namespace picdasm
                 case 0b_1001_1100:
                 case 0b_1001_1101:
                 case 0b_1001_1110:
-                case 0b_1001_1111: e.BCF(loByte, BitOpBit(hiByte), Access(hiByte)); return 2;
+                case 0b_1001_1111: e.BCF(buf.loByte, buf.BitOpBit, buf.Access); return 2;
                 case 0b_1010_0000:
                 case 0b_1010_0001:
                 case 0b_1010_0010:
@@ -501,7 +552,7 @@ namespace picdasm
                 case 0b_1010_1100:
                 case 0b_1010_1101:
                 case 0b_1010_1110:
-                case 0b_1010_1111: e.BTFSS(loByte, BitOpBit(hiByte), Access(hiByte)); return 2;
+                case 0b_1010_1111: e.BTFSS(buf.loByte, buf.BitOpBit, buf.Access); return 2;
                 case 0b_1011_0000:
                 case 0b_1011_0001:
                 case 0b_1011_0010:
@@ -517,7 +568,7 @@ namespace picdasm
                 case 0b_1011_1100:
                 case 0b_1011_1101:
                 case 0b_1011_1110:
-                case 0b_1011_1111: e.BTFSC(loByte, BitOpBit(hiByte), Access(hiByte)); return 2;
+                case 0b_1011_1111: e.BTFSC(buf.loByte, buf.BitOpBit, buf.Access); return 2;
 
                 // MOVFF
                 case 0b_1100_0000:
@@ -537,11 +588,9 @@ namespace picdasm
                 case 0b_1100_1110:
                 case 0b_1100_1111:
                     {
-                        byte exHi;
-                        byte exLo;
-                        fetcher.FetchInstruciton(out exHi, out exLo);
+                        fetcher.FetchInstruciton(out buf.exHi, out buf.exLo);
 
-                        e.MOVFF(MovffSource(hiByte, loByte), MovffDest(exHi, exLo));
+                        e.MOVFF(buf.MovffSource, buf.MovffDest);
                         return 4;
                     }
 
@@ -554,7 +603,7 @@ namespace picdasm
                 case 0b_1101_0100:
                 case 0b_1101_0101:
                 case 0b_1101_0110:
-                case 0b_1101_0111: e.BRA(BraRCallOffset(hiByte, loByte)); return 2;
+                case 0b_1101_0111: e.BRA(buf.BraRCallOffset); return 2;
 
                 // 0b_1101_1nnn
                 case 0b_1101_1000:
@@ -564,30 +613,30 @@ namespace picdasm
                 case 0b_1101_1100:
                 case 0b_1101_1101:
                 case 0b_1101_1110:
-                case 0b_1101_1111: e.RCALL(BraRCallOffset(hiByte, loByte)); return 2;
+                case 0b_1101_1111: e.RCALL(buf.BraRCallOffset); return 2;
 
                 // Conditional branch (to PC+2n)
                 // 0b_1110_0ccc n 
-                case 0b_1110_0000: e.BZ(ConditionalOffset(loByte)); return 2;
-                case 0b_1110_0001: e.BNZ(ConditionalOffset(loByte)); return 2;
-                case 0b_1110_0010: e.BC(ConditionalOffset(loByte)); return 2;
-                case 0b_1110_0011: e.BNC(ConditionalOffset(loByte)); return 2;
-                case 0b_1110_0100: e.BOV(ConditionalOffset(loByte)); return 2;
-                case 0b_1110_0101: e.BNOV(ConditionalOffset(loByte)); return 2;
-                case 0b_1110_0110: e.BN(ConditionalOffset(loByte)); return 2;
-                case 0b_1110_0111: e.BNN(ConditionalOffset(loByte)); return 2;
+                case 0b_1110_0000: e.BZ(buf.ConditionalOffset); return 2;
+                case 0b_1110_0001: e.BNZ(buf.ConditionalOffset); return 2;
+                case 0b_1110_0010: e.BC(buf.ConditionalOffset); return 2;
+                case 0b_1110_0011: e.BNC(buf.ConditionalOffset); return 2;
+                case 0b_1110_0100: e.BOV(buf.ConditionalOffset); return 2;
+                case 0b_1110_0101: e.BNOV(buf.ConditionalOffset); return 2;
+                case 0b_1110_0110: e.BN(buf.ConditionalOffset); return 2;
+                case 0b_1110_0111: e.BNN(buf.ConditionalOffset); return 2;
 
                 case 0b_1110_1000:
                     {
-                        int n = loByte >> 6;
+                        int n = buf.loByte >> 6;
 
                         if (n  == 3)
                         {
-                            e.ADDULNK(loByte & 0x3f);
+                            e.ADDULNK(buf.loByte & 0x3f);
                         }
                         else
                         {
-                            e.ADDFSR(n, loByte & 0x3f);
+                            e.ADDFSR(n, buf.loByte & 0x3f);
                         }
 
                         return 2;
@@ -595,36 +644,34 @@ namespace picdasm
 
                 case 0b_1110_1001:
                     {
-                        int n = loByte >> 6;
+                        int n = buf.loByte >> 6;
 
                         if (n == 3)
                         {
-                            e.SUBULNK(loByte & 0x3f);
+                            e.SUBULNK(buf.loByte & 0x3f);
                         }
                         else
                         {
-                            e.SUBFSR(n, loByte & 0x3f);
+                            e.SUBFSR(n, buf.loByte & 0x3f);
                         }
 
                         return 2;
                     }
 
-                case 0b_1110_1010: e.PUSHL(loByte); return 2;
+                case 0b_1110_1010: e.PUSHL(buf.loByte); return 2;
 
                 case 0b_1110_1011:
                     {
-                        byte src = (byte)(loByte & 0x7f);
-                        byte exHi;
-                        byte exLo;
-                        fetcher.FetchInstruciton(out exHi, out exLo);
+                        byte src = (byte)(buf.loByte & 0x7f);
+                        fetcher.FetchInstruciton(out buf.exHi, out buf.exLo);
 
-                        if ((loByte & 0x80) == 0)
+                        if ((buf.loByte & 0x80) == 0)
                         {
-                            e.MOVSF(src, ((exHi & 0xf) << 8) | exLo);
+                            e.MOVSF(src, ((buf.exHi & 0xf) << 8) | buf.exLo);
                         }
                         else
                         {
-                            e.MOVSS(src, exLo & 0x7f);
+                            e.MOVSS(src, buf.exLo & 0x7f);
                         }
 
                         return 4;
@@ -634,42 +681,36 @@ namespace picdasm
                 case 0b_1110_1100:
                 case 0b_1110_1101:
                     {
-                        byte exHi;
-                        byte exLo;
-                        fetcher.FetchInstruciton(out exHi, out exLo);
+                        fetcher.FetchInstruciton(out buf.exHi, out buf.exLo);
 
                         //if ((exHi & 0xf0) != 0xf0)
                         //    goto unknown;
-                        e.CALL(CallGotoAddr(loByte, exHi, exLo), CallReturnMode(hiByte));
+                        e.CALL(buf.CallGotoAddr, buf.CallMode);
                         return 4;
                     }
 
                 // LFSR n
                 case 0b_1110_1110:
                     {
-                        //if ((loByte & 0xC0) != 0)
+                        //if ((buf.loByte & 0xC0) != 0)
                         //    goto unknown;
 
-                        byte exHi;
-                        byte exLo;
-                        fetcher.FetchInstruciton(out exHi, out exLo);
+                        fetcher.FetchInstruciton(out buf.exHi, out buf.exLo);
 
                         //if (exHi  != 0xf0)
                         //    goto unknown;
-                        e.LFSR((loByte >> 4) & 3, exLo | ((loByte & 0xf) << 8));
+                        e.LFSR((buf.loByte >> 4) & 3, buf.exLo | ((buf.loByte & 0xf) << 8));
                         return 4;
                     }
 
                 // GOTO k
                 case 0b_1110_1111:
                     {
-                        byte exHi;
-                        byte exLo;
-                        fetcher.FetchInstruciton(out exHi, out exLo);
+                        fetcher.FetchInstruciton(out buf.exHi, out buf.exLo);
 
                         //if ((exHi & 0xf0) != 0xf0)
                         //    goto unknown;
-                        e.GOTO(CallGotoAddr(loByte, exHi, exLo));
+                        e.GOTO(buf.CallGotoAddr);
                         return 4;
                     }
 
@@ -688,13 +729,13 @@ namespace picdasm
                 case 0b_1111_1100:
                 case 0b_1111_1101:
                 case 0b_1111_1110:
-                case 0b_1111_1111: e.NOPEX(hiByte, loByte); return 2;
+                case 0b_1111_1111: e.NOPEX(buf.hiByte, buf.loByte); return 2;
 
                 default: goto unknown;
             }
 
             unknown:
-            e.Unknown(hiByte, loByte);
+            e.Unknown(buf.hiByte, buf.loByte);
             return 2;
         }
     }
