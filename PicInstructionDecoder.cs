@@ -38,6 +38,22 @@ namespace picdasm
         public byte exHi;
         public byte exLo;
 
+        public override string ToString()
+        {
+            string result;
+
+            if (isLong)
+            {
+                result = string.Format("{{0:X2}{1:X2} {2:X2}{3:X2}}", hiByte, loByte, exHi, exLo);
+            }
+            else
+            {
+                result = string.Format("{{0:X2}{1:X2}}", hiByte, loByte);
+            }
+
+            return result;
+        }
+
         //public PicInstrucitonType Instruction;
 
         public AccessMode Access
@@ -322,7 +338,6 @@ namespace picdasm
         BTFSS, // byte addr, int bit, AccessMode access
         BTFSC, // byte addr, int bit, AccessMode access
 
-        MOVFF, // int source, int dest
         BRA, // int offset
         RCALL, // int offset
 
@@ -342,14 +357,18 @@ namespace picdasm
         SUBFSR, // int n, int k
         SUBULNK, // int k
         PUSHL, // byte l
+
+        NOPEX, // byte hiByte, byte loByte
+
+        LongStart,
+
+        MOVFF, // int source, int dest
         MOVSF, // int src, int dst
         MOVSS, // int src, int dst
 
         CALL, // int addr, CallReturnOpMode mode
         LFSR, // int f, int k
         GOTO, // int addr
-
-        NOPEX, // byte hiByte, byte loByte
     }
 
     class PicInstructionDecoder
@@ -515,217 +534,179 @@ namespace picdasm
             this.e = e;
         }
 
-        public DecodeResult Decode(PicInstructionBuf buf)
+        private void Drive(PicInstructionBuf buf, PicInstrucitonType type)
         {
-            switch (s_instMap[buf.NopExHi])
+            switch (type)
             {
-                // Miscellaneous instructions
-                // 0b_0000_0000 opcode
+                case PicInstrucitonType.NOP: e.NOP(); return;
+                case PicInstrucitonType.SLEEP: e.SLEEP(); return;
+                case PicInstrucitonType.CLRWDT: e.CLRWDT(); return;
+                case PicInstrucitonType.PUSH: e.PUSH(); return;
+                case PicInstrucitonType.POP: e.POP(); return;
+                case PicInstrucitonType.DAW: e.DAW(); return;
 
-                case PicInstrucitonType.Misc:
-                    switch (s_miscMap[buf.NopExLo])
-                    {
-                        case PicInstrucitonType.NOP: e.NOP(); return DecodeResult.Success;
-                        case PicInstrucitonType.SLEEP: e.SLEEP(); return DecodeResult.Success;
-                        case PicInstrucitonType.CLRWDT: e.CLRWDT(); return DecodeResult.Success;
-                        case PicInstrucitonType.PUSH: e.PUSH(); return DecodeResult.Success;
-                        case PicInstrucitonType.POP: e.POP(); return DecodeResult.Success;
-                        case PicInstrucitonType.DAW: e.DAW(); return DecodeResult.Success;
+                case PicInstrucitonType.TBLRD: e.TBLRD(buf.TableMode); return;
+                case PicInstrucitonType.TBLWT: e.TBLWT(buf.TableMode); return;
 
-                        case PicInstrucitonType.TBLRD: e.TBLRD(buf.TableMode); return DecodeResult.Success;
-                        case PicInstrucitonType.TBLWT: e.TBLWT(buf.TableMode); return DecodeResult.Success;
+                case PicInstrucitonType.RETFIE: e.RETFIE(buf.ReturnRetfieMode); return;
+                case PicInstrucitonType.RETURN: e.RETURN(buf.ReturnRetfieMode); return;
 
-                        case PicInstrucitonType.RETFIE: e.RETFIE(buf.ReturnRetfieMode); return DecodeResult.Success;
-                        case PicInstrucitonType.RETURN: e.RETURN(buf.ReturnRetfieMode); return DecodeResult.Success;
+                case PicInstrucitonType.CALLW: e.CALLW(); return;
 
-                        case PicInstrucitonType.CALLW: e.CALLW(); return DecodeResult.Success;
+                case PicInstrucitonType.EMULEN: e.EMULEN(); return;
+                case PicInstrucitonType.EMULDIS: e.EMULDIS(); return;
 
-                        case PicInstrucitonType.EMULEN: e.EMULEN(); return DecodeResult.Success;
-                        case PicInstrucitonType.EMULDIS: e.EMULDIS(); return DecodeResult.Success;
+                case PicInstrucitonType.RESET: e.RESET(); return;
 
-                        case PicInstrucitonType.RESET: e.RESET(); return DecodeResult.Success;
+                case PicInstrucitonType.MOVLB: e.MOVLB(buf.Bank); return;
 
-                        default:
-                            e.Unknown(buf.UnkHi, buf.UnkLo);
-                            return DecodeResult.Success;
-                    }
-
-                // MOVLB
-                case PicInstrucitonType.MOVLB:
-                    //if ((buf.loByte & 0xf0) != 0)
-                    //    goto unknown;
-                    e.MOVLB(buf.Bank);
-                    return DecodeResult.Success;
-
-                // Literal operations: W ← OP(k,W)
-                // 0b_0000_1ooo k
-
-                case PicInstrucitonType.SUBLW: e.SUBLW(buf.Literal); return DecodeResult.Success;
-                case PicInstrucitonType.IORLW: e.IORLW(buf.Literal); return DecodeResult.Success;
-                case PicInstrucitonType.XORLW: e.XORLW(buf.Literal); return DecodeResult.Success;
-                case PicInstrucitonType.ANDLW: e.ANDLW(buf.Literal); return DecodeResult.Success;
-                case PicInstrucitonType.RETLW: e.RETLW(buf.Literal); return DecodeResult.Success;
-                case PicInstrucitonType.MULLW: e.MULLW(buf.Literal); return DecodeResult.Success;
-                case PicInstrucitonType.MOVLW: e.MOVLW(buf.Literal); return DecodeResult.Success;
-                case PicInstrucitonType.ADDLW: e.ADDLW(buf.Literal); return DecodeResult.Success;
+                case PicInstrucitonType.SUBLW: e.SUBLW(buf.Literal); return;
+                case PicInstrucitonType.IORLW: e.IORLW(buf.Literal); return;
+                case PicInstrucitonType.XORLW: e.XORLW(buf.Literal); return;
+                case PicInstrucitonType.ANDLW: e.ANDLW(buf.Literal); return;
+                case PicInstrucitonType.RETLW: e.RETLW(buf.Literal); return;
+                case PicInstrucitonType.MULLW: e.MULLW(buf.Literal); return;
+                case PicInstrucitonType.MOVLW: e.MOVLW(buf.Literal); return;
+                case PicInstrucitonType.ADDLW: e.ADDLW(buf.Literal); return;
 
                 // register ALU operations: dest ← OP(f,W)
                 // 0b_0ooo_ooda 
-                case PicInstrucitonType.MULWF: e.MULWF(buf.FileReg, buf.Access); return DecodeResult.Success;
-                case PicInstrucitonType.DECF: e.DECF(buf.FileReg, buf.Destination, buf.Access); return DecodeResult.Success;
-                case PicInstrucitonType.IORWF: e.IORWF(buf.FileReg, buf.Destination, buf.Access); return DecodeResult.Success;
-                case PicInstrucitonType.ANDWF: e.ANDWF(buf.FileReg, buf.Destination, buf.Access); return DecodeResult.Success;
-                case PicInstrucitonType.XORWF: e.XORWF(buf.FileReg, buf.Destination, buf.Access); return DecodeResult.Success;
-                case PicInstrucitonType.COMF: e.COMF(buf.FileReg, buf.Destination, buf.Access); return DecodeResult.Success;
-                case PicInstrucitonType.ADDWFC: e.ADDWFC(buf.FileReg, buf.Destination, buf.Access); return DecodeResult.Success;
-                case PicInstrucitonType.ADDWF: e.ADDWF(buf.FileReg, buf.Destination, buf.Access); return DecodeResult.Success;
-                case PicInstrucitonType.INCF: e.INCF(buf.FileReg, buf.Destination, buf.Access); return DecodeResult.Success;
-                case PicInstrucitonType.DECFSZ: e.DECFSZ(buf.FileReg, buf.Destination, buf.Access); return DecodeResult.Success;
-                case PicInstrucitonType.RRCF: e.RRCF(buf.FileReg, buf.Destination, buf.Access); return DecodeResult.Success;
-                case PicInstrucitonType.RLCF: e.RLCF(buf.FileReg, buf.Destination, buf.Access); return DecodeResult.Success;
-                case PicInstrucitonType.SWAPF: e.SWAPF(buf.FileReg, buf.Destination, buf.Access); return DecodeResult.Success;
-                case PicInstrucitonType.INCFSZ: e.INCFSZ(buf.FileReg, buf.Destination, buf.Access); return DecodeResult.Success;
-                case PicInstrucitonType.RRNCF: e.RRNCF(buf.FileReg, buf.Destination, buf.Access); return DecodeResult.Success;
-                case PicInstrucitonType.RLNCF: e.RLNCF(buf.FileReg, buf.Destination, buf.Access); return DecodeResult.Success;
-                case PicInstrucitonType.INFSNZ: e.INFSNZ(buf.FileReg, buf.Destination, buf.Access); return DecodeResult.Success;
-                case PicInstrucitonType.DCFSNZ: e.DCFSNZ(buf.FileReg, buf.Destination, buf.Access); return DecodeResult.Success;
-                case PicInstrucitonType.MOVF: e.MOVF(buf.FileReg, buf.Destination, buf.Access); return DecodeResult.Success;
-                case PicInstrucitonType.SUBFWB: e.SUBFWB(buf.FileReg, buf.Destination, buf.Access); return DecodeResult.Success;
-                case PicInstrucitonType.SUBWFB: e.SUBWFB(buf.FileReg, buf.Destination, buf.Access); return DecodeResult.Success;
-                case PicInstrucitonType.SUBWF: e.SUBWF(buf.FileReg, buf.Destination, buf.Access); return DecodeResult.Success;
+                case PicInstrucitonType.MULWF: e.MULWF(buf.FileReg, buf.Access); return;
+                case PicInstrucitonType.DECF: e.DECF(buf.FileReg, buf.Destination, buf.Access); return;
+                case PicInstrucitonType.IORWF: e.IORWF(buf.FileReg, buf.Destination, buf.Access); return;
+                case PicInstrucitonType.ANDWF: e.ANDWF(buf.FileReg, buf.Destination, buf.Access); return;
+                case PicInstrucitonType.XORWF: e.XORWF(buf.FileReg, buf.Destination, buf.Access); return;
+                case PicInstrucitonType.COMF: e.COMF(buf.FileReg, buf.Destination, buf.Access); return;
+                case PicInstrucitonType.ADDWFC: e.ADDWFC(buf.FileReg, buf.Destination, buf.Access); return;
+                case PicInstrucitonType.ADDWF: e.ADDWF(buf.FileReg, buf.Destination, buf.Access); return;
+                case PicInstrucitonType.INCF: e.INCF(buf.FileReg, buf.Destination, buf.Access); return;
+                case PicInstrucitonType.DECFSZ: e.DECFSZ(buf.FileReg, buf.Destination, buf.Access); return;
+                case PicInstrucitonType.RRCF: e.RRCF(buf.FileReg, buf.Destination, buf.Access); return;
+                case PicInstrucitonType.RLCF: e.RLCF(buf.FileReg, buf.Destination, buf.Access); return;
+                case PicInstrucitonType.SWAPF: e.SWAPF(buf.FileReg, buf.Destination, buf.Access); return;
+                case PicInstrucitonType.INCFSZ: e.INCFSZ(buf.FileReg, buf.Destination, buf.Access); return;
+                case PicInstrucitonType.RRNCF: e.RRNCF(buf.FileReg, buf.Destination, buf.Access); return;
+                case PicInstrucitonType.RLNCF: e.RLNCF(buf.FileReg, buf.Destination, buf.Access); return;
+                case PicInstrucitonType.INFSNZ: e.INFSNZ(buf.FileReg, buf.Destination, buf.Access); return;
+                case PicInstrucitonType.DCFSNZ: e.DCFSNZ(buf.FileReg, buf.Destination, buf.Access); return;
+                case PicInstrucitonType.MOVF: e.MOVF(buf.FileReg, buf.Destination, buf.Access); return;
+                case PicInstrucitonType.SUBFWB: e.SUBFWB(buf.FileReg, buf.Destination, buf.Access); return;
+                case PicInstrucitonType.SUBWFB: e.SUBWFB(buf.FileReg, buf.Destination, buf.Access); return;
+                case PicInstrucitonType.SUBWF: e.SUBWF(buf.FileReg, buf.Destination, buf.Access); return;
 
                 // register ALU operations, do not write to W
                 // 0b_0110_oooa f
-                case PicInstrucitonType.CPFSLT: e.CPFSLT(buf.FileReg, buf.Access); return DecodeResult.Success;
-                case PicInstrucitonType.CPFSEQ: e.CPFSEQ(buf.FileReg, buf.Access); return DecodeResult.Success;
-                case PicInstrucitonType.CPFSGT: e.CPFSGT(buf.FileReg, buf.Access); return DecodeResult.Success;
-                case PicInstrucitonType.TSTFSZ: e.TSTFSZ(buf.FileReg, buf.Access); return DecodeResult.Success;
-                case PicInstrucitonType.SETF: e.SETF(buf.FileReg, buf.Access); return DecodeResult.Success;
-                case PicInstrucitonType.CLRF: e.CLRF(buf.FileReg, buf.Access); return DecodeResult.Success;
-                case PicInstrucitonType.NEGF: e.NEGF(buf.FileReg, buf.Access); return DecodeResult.Success;
-                case PicInstrucitonType.MOVWF: e.MOVWF(buf.FileReg, buf.Access); return DecodeResult.Success;
+                case PicInstrucitonType.CPFSLT: e.CPFSLT(buf.FileReg, buf.Access); return;
+                case PicInstrucitonType.CPFSEQ: e.CPFSEQ(buf.FileReg, buf.Access); return;
+                case PicInstrucitonType.CPFSGT: e.CPFSGT(buf.FileReg, buf.Access); return;
+                case PicInstrucitonType.TSTFSZ: e.TSTFSZ(buf.FileReg, buf.Access); return;
+                case PicInstrucitonType.SETF: e.SETF(buf.FileReg, buf.Access); return;
+                case PicInstrucitonType.CLRF: e.CLRF(buf.FileReg, buf.Access); return;
+                case PicInstrucitonType.NEGF: e.NEGF(buf.FileReg, buf.Access); return;
+                case PicInstrucitonType.MOVWF: e.MOVWF(buf.FileReg, buf.Access); return;
 
                 // 0b_0111_bbba BTG f,b,a Toggle bit b of f
-                case PicInstrucitonType.BTG: e.BTG(buf.FileReg, buf.BitOpBit, buf.Access); return DecodeResult.Success;
+                case PicInstrucitonType.BTG: e.BTG(buf.FileReg, buf.BitOpBit, buf.Access); return;
 
                 // register Bit operations
                 // 0b_10oo_bbba 
-                case PicInstrucitonType.BSF: e.BSF(buf.FileReg, buf.BitOpBit, buf.Access); return DecodeResult.Success;
-                case PicInstrucitonType.BCF: e.BCF(buf.FileReg, buf.BitOpBit, buf.Access); return DecodeResult.Success;
-                case PicInstrucitonType.BTFSS: e.BTFSS(buf.FileReg, buf.BitOpBit, buf.Access); return DecodeResult.Success;
-                case PicInstrucitonType.BTFSC: e.BTFSC(buf.FileReg, buf.BitOpBit, buf.Access); return DecodeResult.Success;
+                case PicInstrucitonType.BSF: e.BSF(buf.FileReg, buf.BitOpBit, buf.Access); return;
+                case PicInstrucitonType.BCF: e.BCF(buf.FileReg, buf.BitOpBit, buf.Access); return;
+                case PicInstrucitonType.BTFSS: e.BTFSS(buf.FileReg, buf.BitOpBit, buf.Access); return;
+                case PicInstrucitonType.BTFSC: e.BTFSC(buf.FileReg, buf.BitOpBit, buf.Access); return;
 
                 // MOVFF
-                case PicInstrucitonType.MOVFF:
-                    {
-                        if (!buf.isLong) return DecodeResult.FetchLong;
-
-                        e.MOVFF(buf.MovffSource, buf.MovffDest);
-                        return DecodeResult.SuccessLong;
-                    }
+                case PicInstrucitonType.MOVFF: e.MOVFF(buf.MovffSource, buf.MovffDest); return;
 
                 // BRA n
-                case PicInstrucitonType.BRA: e.BRA(buf.BraRCallOffset); return DecodeResult.Success;
-                case PicInstrucitonType.RCALL: e.RCALL(buf.BraRCallOffset); return DecodeResult.Success;
+                case PicInstrucitonType.BRA: e.BRA(buf.BraRCallOffset); return;
+                case PicInstrucitonType.RCALL: e.RCALL(buf.BraRCallOffset); return;
 
                 // Conditional branch (to PC+2n)
-                case PicInstrucitonType.BZ: e.BZ(buf.ConditionalOffset); return DecodeResult.Success;
-                case PicInstrucitonType.BNZ: e.BNZ(buf.ConditionalOffset); return DecodeResult.Success;
-                case PicInstrucitonType.BC: e.BC(buf.ConditionalOffset); return DecodeResult.Success;
-                case PicInstrucitonType.BNC: e.BNC(buf.ConditionalOffset); return DecodeResult.Success;
-                case PicInstrucitonType.BOV: e.BOV(buf.ConditionalOffset); return DecodeResult.Success;
-                case PicInstrucitonType.BNOV: e.BNOV(buf.ConditionalOffset); return DecodeResult.Success;
-                case PicInstrucitonType.BN: e.BN(buf.ConditionalOffset); return DecodeResult.Success;
-                case PicInstrucitonType.BNN: e.BNN(buf.ConditionalOffset); return DecodeResult.Success;
+                case PicInstrucitonType.BZ: e.BZ(buf.ConditionalOffset); return;
+                case PicInstrucitonType.BNZ: e.BNZ(buf.ConditionalOffset); return;
+                case PicInstrucitonType.BC: e.BC(buf.ConditionalOffset); return;
+                case PicInstrucitonType.BNC: e.BNC(buf.ConditionalOffset); return;
+                case PicInstrucitonType.BOV: e.BOV(buf.ConditionalOffset); return;
+                case PicInstrucitonType.BNOV: e.BNOV(buf.ConditionalOffset); return;
+                case PicInstrucitonType.BN: e.BN(buf.ConditionalOffset); return;
+                case PicInstrucitonType.BNN: e.BNN(buf.ConditionalOffset); return;
+
+                case PicInstrucitonType.ADDFSR: e.ADDFSR(buf.FsrN, buf.FsrLiteral); return;
+                case PicInstrucitonType.ADDULNK: e.ADDULNK(buf.FsrLiteral); return;
+                case PicInstrucitonType.SUBFSR: e.SUBFSR(buf.FsrN, buf.FsrLiteral); return;
+                case PicInstrucitonType.SUBULNK: e.SUBULNK(buf.FsrLiteral); return;
+
+                case PicInstrucitonType.PUSHL: e.PUSHL(buf.Literal); return;
+
+                case PicInstrucitonType.MOVSF: e.MOVSF(buf.MovssSrc, buf.MovsfFileReg); return;
+                case PicInstrucitonType.MOVSS: e.MOVSS(buf.MovssSrc, buf.MovssDst); return;
+
+                case PicInstrucitonType.LFSR: e.LFSR(buf.LfsrFSR, buf.LfsrLiteral); return;
+
+                case PicInstrucitonType.CALL: e.CALL(buf.CallGotoAddr, buf.CallMode); return;
+                case PicInstrucitonType.GOTO: e.GOTO(buf.CallGotoAddr); return;
+
+                case PicInstrucitonType.NOPEX: e.NOPEX(buf.NopExHi, buf.NopExLo); return;
+
+                case PicInstrucitonType.Unknown: e.Unknown(buf.UnkHi, buf.UnkLo); return;
+
+                default:
+                    throw new NotImplementedException(string.Format("Unknown type ({0})", type));
+            }
+        }
+
+        public DecodeResult Decode(PicInstructionBuf buf)
+        {
+            var inst = s_instMap[buf.NopExHi];
+
+            switch (inst)
+            {
+                case PicInstrucitonType.Misc:
+                    inst = s_miscMap[buf.NopExLo];
+                    break;
 
                 case PicInstrucitonType.AddLfsr:
-                    {
-                        if (buf.FsrN == 3)
-                        {
-                            e.ADDULNK(buf.FsrLiteral);
-                        }
-                        else
-                        {
-                            e.ADDFSR(buf.FsrN, buf.FsrLiteral);
-                        }
-
-                        return DecodeResult.Success;
-                    }
+                    if (buf.FsrN == 3)
+                        inst = PicInstrucitonType.ADDULNK;
+                    else
+                        inst = PicInstrucitonType.ADDFSR;
+                    break;
 
                 case PicInstrucitonType.SubLfsr:
-                    {
-                        if (buf.FsrN == 3)
-                        {
-                            e.SUBULNK(buf.FsrLiteral);
-                        }
-                        else
-                        {
-                            e.SUBFSR(buf.FsrN, buf.FsrLiteral);
-                        }
-
-                        return DecodeResult.Success;
-                    }
-
-                case PicInstrucitonType.PUSHL: e.PUSHL(buf.Literal); return DecodeResult.Success;
+                    if (buf.FsrN == 3)
+                        inst = PicInstrucitonType.SUBULNK;
+                    else
+                        inst = PicInstrucitonType.SUBFSR;
+                    break;
 
                 case PicInstrucitonType.Movsf_Movss:
-                    {
-                        if (!buf.isLong) return DecodeResult.FetchLong;
+                    if ((buf.UnkLo & 0x80) == 0)
+                        inst = PicInstrucitonType.MOVSF;
+                    else
+                        inst = PicInstrucitonType.MOVSS;
+                    break;
 
-                        if ((buf.UnkLo & 0x80) == 0)
-                        {
-                            e.MOVSF(buf.MovssSrc, buf.MovsfFileReg);
-                        }
-                        else
-                        {
-                            e.MOVSS(buf.MovssSrc, buf.MovssDst);
-                        }
-
-                        return DecodeResult.SuccessLong;
-                    }
-
-                // CALL k
-                case PicInstrucitonType.CALL:
-                    {
-                        if (!buf.isLong) return DecodeResult.FetchLong;
-
-                        //if ((exHi & 0xf0) != 0xf0)
-                        //    goto unknown;
-                        e.CALL(buf.CallGotoAddr, buf.CallMode);
-                        return DecodeResult.SuccessLong;
-                    }
-
-                // LFSR n
-                case PicInstrucitonType.LFSR:
-                    {
-                        //if ((buf.loByte & 0xC0) != 0)
-                        //    goto unknown;
-
-                        if (!buf.isLong) return DecodeResult.FetchLong;
-
-                        //if (exHi  != 0xf0)
-                        //    goto unknown;
-                        e.LFSR(buf.LfsrFSR, buf.LfsrLiteral);
-                        return DecodeResult.SuccessLong;
-                    }
-
-                // GOTO k
-                case PicInstrucitonType.GOTO:
-                    {
-                        if (!buf.isLong) return DecodeResult.FetchLong;
-
-                        //if ((exHi & 0xf0) != 0xf0)
-                        //    goto unknown;
-                        e.GOTO(buf.CallGotoAddr);
-                        return DecodeResult.SuccessLong;
-                    }
-
-                case PicInstrucitonType.NOPEX: e.NOPEX(buf.NopExHi, buf.NopExLo); return DecodeResult.Success;
-
-                case PicInstrucitonType.Unknown:
                 default:
-                    e.Unknown(buf.UnkHi, buf.UnkLo);
-                    return DecodeResult.Success;
+                    if (inst < PicInstrucitonType.Unknown)
+                        throw new NotImplementedException(string.Format("Unknown special type ({0})", inst));
+                    break;
+            }
+
+            if (inst > PicInstrucitonType.LongStart)
+            {
+                if (buf.isLong)
+                {
+                    Drive(buf, inst);
+                    return DecodeResult.SuccessLong;
+                }
+                else
+                    return DecodeResult.FetchLong;
+            }
+            else
+            {
+                Drive(buf, inst);
+                return DecodeResult.Success;
             }
         }
     }
