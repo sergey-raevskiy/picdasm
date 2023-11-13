@@ -14,7 +14,7 @@
         {
             buf.hiByte = progmem[PC + 1];
             buf.loByte = progmem[PC];
-            buf.exValid = false;
+            buf.isLong = false;
         }
 
         public void FetchLong(PicInstructionBuf buf)
@@ -23,7 +23,7 @@
             buf.loByte = progmem[PC];
             buf.exHi = progmem[PC + 3];
             buf.exLo = progmem[PC + 2];
-            buf.exValid = true;
+            buf.isLong = true;
         }
     }
 }

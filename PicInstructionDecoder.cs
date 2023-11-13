@@ -144,18 +144,11 @@ namespace picdasm
 
     class PicInstructionBuf
     {
+        public bool isLong;
         public byte hiByte;
         public byte loByte;
         public byte exHi;
         public byte exLo;
-        public bool exValid;
-
-        public void Reset()
-        {
-            exHi = 0;
-            exLo = 0;
-            exValid = false;
-        }
 
         //public PicInstrucitonType Instruction;
 
@@ -590,7 +583,7 @@ namespace picdasm
                 case 0b_1100_1110:
                 case 0b_1100_1111:
                     {
-                        if (!buf.exValid) return 3;
+                        if (!buf.isLong) return 3;
 
                         e.MOVFF(buf.MovffSource, buf.MovffDest);
                         return 4;
@@ -665,7 +658,7 @@ namespace picdasm
                 case 0b_1110_1011:
                     {
                         byte src = (byte)(buf.loByte & 0x7f);
-                        if (!buf.exValid) return 3;
+                        if (!buf.isLong) return 3;
 
                         if ((buf.loByte & 0x80) == 0)
                         {
@@ -683,7 +676,7 @@ namespace picdasm
                 case 0b_1110_1100:
                 case 0b_1110_1101:
                     {
-                        if (!buf.exValid) return 3;
+                        if (!buf.isLong) return 3;
 
                         //if ((exHi & 0xf0) != 0xf0)
                         //    goto unknown;
@@ -697,7 +690,7 @@ namespace picdasm
                         //if ((buf.loByte & 0xC0) != 0)
                         //    goto unknown;
 
-                        if (!buf.exValid) return 3;
+                        if (!buf.isLong) return 3;
 
                         //if (exHi  != 0xf0)
                         //    goto unknown;
@@ -708,7 +701,7 @@ namespace picdasm
                 // GOTO k
                 case 0b_1110_1111:
                     {
-                        if (!buf.exValid) return 3;
+                        if (!buf.isLong) return 3;
 
                         //if ((exHi & 0xf0) != 0xf0)
                         //    goto unknown;
