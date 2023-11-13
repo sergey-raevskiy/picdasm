@@ -17,21 +17,14 @@ namespace picdasm
             public PicInstrucitonType InstructionType;
         }
 
-        protected enum NextAction
-        {
-            Next,
-            Reset,
-            Completed,
-        }
-
         CurrentInstructionHandle h = new CurrentInstructionHandle();
-        IEnumerator<NextAction> iter;
+        IEnumerator<bool> iter;
 
         protected MetaInstructionProcessorBase2()
         {
         }
 
-        protected abstract IEnumerable<NextAction> QQ(CurrentInstructionHandle h);
+        protected abstract IEnumerable<bool> QQ(CurrentInstructionHandle h);
 
         public void Exec(int pc, PicInstructionBuf buf, PicInstrucitonType type)
         {
@@ -44,7 +37,7 @@ namespace picdasm
                 iter = QQ(h).GetEnumerator();
             }
 
-            if (!iter.MoveNext() || iter.Current == NextAction.Reset || iter.Current == NextAction.Completed)
+            if (!iter.MoveNext() || !iter.Current)
             {
                 iter = null;
             }
@@ -97,7 +90,7 @@ namespace picdasm
             o.RefGoto(endPc);
         }
 
-        override protected IEnumerable<NextAction> QQ(CurrentInstructionHandle h)
+        override protected IEnumerable<bool> QQ(CurrentInstructionHandle h)
         {
             int startPc = 0;
             int endPc = 0;
@@ -110,7 +103,7 @@ namespace picdasm
                     if (seq.Count == 0)
                         startPc = h.PC;
                     seq.Add(new XorSwitchSeq() { literal = h.Buf.Literal });
-                    yield return NextAction.Next;
+                    yield return true;
                 }
                 else
                 {
@@ -119,7 +112,7 @@ namespace picdasm
                         DumpSeq(seq, startPc, endPc);
                     }
 
-                    yield return NextAction.Reset;
+                    yield return false;
                 }
 
                 if (h.InstructionType == PicInstrucitonType.BZ)
@@ -127,28 +120,28 @@ namespace picdasm
                     int addr = h.PC + 2 + 2 * h.Buf.ConditionalOffset;
                     seq[seq.Count - 1].jumpAddr = addr;
                     endPc = h.PC + 2;
-                    yield return NextAction.Next;
+                    yield return true;
                 }
                 else if (h.InstructionType == PicInstrucitonType.BTFSC &&
                          IsZeroBit(h.Buf.FileReg, h.Buf.BitOpBit, h.Buf.Access))
                 {
-                    yield return NextAction.Next;
+                    yield return true;
 
                     if (h.InstructionType == PicInstrucitonType.BRA)
                     {
                         int addr = h.PC + 2 + 2 * h.Buf.BraRCallOffset;
                         seq[seq.Count - 1].jumpAddr = addr;
                         endPc = h.PC + 2;
-                        yield return NextAction.Next;
+                        yield return true;
                     }
                     else
                     {
-                        yield return NextAction.Reset;
+                        yield return false;
                     }
                 }
                 else
                 {
-                    yield return NextAction.Reset;
+                    yield return false;
                 }
             }
         }
