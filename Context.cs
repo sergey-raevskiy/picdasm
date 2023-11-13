@@ -25,5 +25,12 @@
             buf.exLo = progmem[PC + 2];
             buf.isLong = true;
         }
+
+        public ushort ReadU16(int addr)
+        {
+            byte hiByte = progmem[addr + 1];
+            byte loByte = progmem[addr];
+            return (ushort)((hiByte << 8) | loByte);
+        }
     }
 }

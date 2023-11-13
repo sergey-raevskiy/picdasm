@@ -19,6 +19,7 @@ namespace picdasm
         {
             public int addr;
             public string text;
+            public bool prespace;
         }
 
         private List<Line> lines = new List<Line>();
@@ -45,11 +46,8 @@ namespace picdasm
 
         public void WriteLine(string f, params object[] args)
         {
-            if (prespace)
-            {
-                lines.Add(new Line() { addr = PC, text = "" });
-                prespace = false;
-            }
+            bool prespace = this.prespace;
+            this.prespace = false;
 
             string text = "    ";
             if (indent != 0)
@@ -59,7 +57,7 @@ namespace picdasm
             }
 
             text += string.Format(f, args);
-            lines.Add(new Line { addr = PC, text = text });
+            lines.Add(new Line { prespace = prespace, addr = PC, text = text });
         }
 
         private readonly Dictionary<int, string[]> Rewrites = new Dictionary<int, string[]>();
@@ -109,6 +107,9 @@ namespace picdasm
             int prev = -1;
             foreach (var line in Lines())
             {
+                if (line.prespace)
+                    w.WriteLine();
+
                 if (line.addr != prev && line.text!="")
                 {
                     bool sk = false;

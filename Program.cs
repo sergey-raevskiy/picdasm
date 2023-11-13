@@ -39,7 +39,7 @@ namespace picdasm
 
             DisasmCore(prog, ctx, new Driver(qq));
 
-            ctx = new Context(prog);    
+            ctx = new Context(prog);
             var qq2 = new XorSwitchMetaInstructionProcessor(qq.o);
             DisasmCore(prog, ctx, qq2);
 
@@ -47,6 +47,9 @@ namespace picdasm
             var qq3 = new ImmediateSwitchInstructionProcessor(qq.o);
             DisasmCore(prog, ctx, new Driver(qq3));
 
+            ctx = new Context(prog);
+            var qq4 = new TableSwitchMetaInstructionProcessor(ctx, qq.o);
+            DisasmCore(prog, ctx, qq4);
 
             qq.Dump(Console.Out);
         }
