@@ -4,7 +4,7 @@ Decompiler for PIC18. Generates C-like pseudocode. Written in "flow state", quic
 
 Example output:
 
-```
+```c
 void _FUNC_(int _pfn)
 {
 switch (_pfn) {
